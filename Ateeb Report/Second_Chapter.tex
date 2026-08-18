@@ -1,0 +1,72 @@
+\chapter{Problem Definition and Scope}
+\section{Problem Statement}
+\hspace*{0.5in}To develop a Generative AI-powered system that intelligently combines AI-based skin condition detection using CNN/ViT models with Large Language Model (LLM) reasoning to produce dynamic, context-aware skincare routines, dietary guidance, and dermatological advice tailored to each individual's hormonal profile — without requiring the user to possess any medical or technical expertise.\\
+
+\subsection{Goals and Objectives}
+\hspace*{0.5in}The proposed system aims to deliver accurate, personalised, and evidence-grounded skincare guidance by integrating computer vision, natural language processing, and generative AI in the following ways:
+
+\begin{itemize}
+    \item {\fontsize{14}{16}\selectfont \textbf{Goals}}
+    \vspace{0.5cm}
+        \begin{enumerate}
+            \item To build a fully functional, deployable Multi-Model AI skincare assistant that serves individuals with hormonal skin conditions across diverse demographics and life stages.
+
+            \item To achieve skin condition classification accuracy exceeding 90\% on benchmark datasets (ISIC Archive and a custom hormonal skin image dataset).
+
+            \item To generate clinically meaningful, RAG-grounded skincare recommendations validated by dermatologist review and user satisfaction scores.
+
+            \item To demonstrate that LLM-based personalised healthcare guidance, when properly grounded and scoped, can safely supplement professional dermatological consultation.
+        \end{enumerate}
+        \vspace{1cm}
+     \newpage
+\vspace{1cm}   % adjust value (0.5cm, 1cm, 1.5cm)
+
+\item {\fontsize{14}{16}\selectfont \textbf{Objectives}}
+\vspace{0.5cm}
+
+\begin{enumerate}
+        \item \textbf To develop a Generative AI–based system that provides personalized skincare recommendations  based on  hormonal  fluctuations and user inputs.​
+
+        \item \textbf To integrate image-based skin analysis using CNN/ViT models with a RAG-enabled LLM   for generating skincare routines, diet suggestions, and product recommendations.​
+        
+        \item \textbf To evaluate the effectiveness of the system using user feedback and dermatologist- informed metrics.​
+
+    \end{enumerate}
+    \vspace{0.5cm}
+\end{itemize}
+
+\subsection{Assumptions and Scope}
+\vspace*{0.2in}
+    \begin{itemize}
+        \item {\fontsize{14}{16}\selectfont \textbf{Assumptions}}
+        \vspace{0.5cm}
+            \begin{itemize}[label=$\diamond$]
+                \item \textbf{Image Quality:} The system assumes users can capture adequately lit, in-focus facial photographs using a standard smartphone camera. Severely blurred or dark images will trigger a re-capture prompt.
+
+                \item \textbf{User-Reported Data:} Hormonal profile data (menstrual cycle details, diagnosed conditions like PCOS or thyroid disorder, stress levels) is assumed to be self-reported honestly by users. Accuracy of recommendations is partially dependent on input data quality.
+
+                \item \textbf{Internet Access:} The system requires an active internet connection for real-time model inference via the FastAPI backend and LLM API calls.
+
+                \item \textbf{Medical Disclaimer:} The system is an advisory tool and not a substitute for professional medical diagnosis. All users are clearly informed that severe or atypical skin conditions should be evaluated by a licensed dermatologist.
+
+                \item \textbf{Scope of Hormonal Conditions:} The system targets common hormonal skin manifestations including PCOS-related acne, thyroid-related dryness, menopausal hyperpigmentation, and postpartum skin changes. It does not address skin cancers or systemic dermatological diseases.
+            \end{itemize}
+            \vspace*{0.2in}
+        \item {\fontsize{14}{16}\selectfont \textbf{Scope}}
+        \vspace{0.5cm}
+            \begin{itemize}[label=$\diamond$]
+                \item The system provides topical skincare recommendations (cleansers, serums, moisturisers, SPF) and lifestyle guidance (diet, hydration, stress management) relevant to the detected condition and hormonal profile.
+
+                \item Prescription medication recommendations and clinical diagnosis of systemic hormonal disorders are explicitly out of scope.
+
+                \item The system is targeted at adult users (18+) experiencing hormonally influenced skin concerns, with design considerations for users across diverse skin tones.
+
+                \item The project delivers a web application; a native mobile application is identified as a future enhancement.
+
+                \item A skin progress tracking dashboard allowing users to monitor improvement over multiple sessions is within scope as a secondary deliverable.
+
+                \item The knowledge base covers peer-reviewed dermatological publications, evidence-based skincare ingredient databases, and clinical guidelines. Brand-specific product promotions are excluded.
+            \end{itemize}
+    \end{itemize}
+    \vspace{0.5cm}
+\hspace*{0.5in}By precisely defining the problem scope and establishing clear assumptions, the proposed system is positioned to deliver maximum clinical value to its target users while maintaining scientific rigour, ethical responsibility, and appropriate safety guardrails.

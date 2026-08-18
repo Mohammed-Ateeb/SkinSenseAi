@@ -1,5 +1,5 @@
 """
-EfficientNet-B0 loader with 6-class skin condition head.
+EfficientNet-B0 loader with a skin-condition classification head sized to CLASS_NAMES.
 Weights are loaded from WEIGHTS_PATH env var (or passed explicitly).
 When no weights file exists, the model is initialised with random weights
 (useful for integration testing without a trained checkpoint).
@@ -22,6 +22,12 @@ CLASS_NAMES: list[str] = [
     "rosacea",
     "seborrheic_keratoses",
     "tinea",
+    "melasma",
+    "vitiligo",
+    "hyperpigmentation",
+    "contact_dermatitis",
+    "warts",
+    "actinic_keratosis",
 ]
 
 _TEMPERATURE_DEFAULT = float(os.getenv("TEMPERATURE", "1.5"))
@@ -43,7 +49,7 @@ class TemperatureScaler(nn.Module):
         return logits / self.temperature
 
 
-def _build_efficientnet_b0(num_classes: int = 6) -> nn.Module:
+def _build_efficientnet_b0(num_classes: int = len(CLASS_NAMES)) -> nn.Module:
     """Return EfficientNet-B0 with a fresh classification head for num_classes."""
     backbone = models.efficientnet_b0(weights=None)
     in_features = backbone.classifier[1].in_features

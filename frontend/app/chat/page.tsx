@@ -62,6 +62,18 @@ export default function ChatPage() {
 
   const handleSubmit = (e: FormEvent) => { e.preventDefault(); send(input); };
 
+  // If arriving from an analysis ("Ask about your results"), open with that condition
+  const initRef = useRef(false);
+  useEffect(() => {
+    if (initRef.current) return;
+    const about = new URLSearchParams(window.location.search).get('about');
+    if (about) {
+      initRef.current = true;
+      send(`I just received a skin analysis result: ${about.replace(/_/g, ' ')}. Can you explain what it means and how I should manage it?`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "linear-gradient(135deg, #EDD9C0 0%, #E8C9A0 40%, #F0D5C0 100%)" }}>
       <AppSidebar />

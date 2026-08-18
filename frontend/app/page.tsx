@@ -47,16 +47,16 @@ const FEATURES = [
   },
   {
     icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="#C9963E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" stroke="#C9963E" strokeWidth="1.5"/></svg>,
-    title: "OTC Recommendations",
-    desc: "Product recommendations from a curated list — AI-guardrailed, no prescriptions, no hallucinations.",
+    title: "Product Recommendations",
+    desc: "Curated, dermatology-backed product picks matched to your skin — over-the-counter, never prescriptions.",
   },
 ];
 
 const STEPS = [
   "Photograph your skin concern",
-  "AI classifies — 6 conditions, calibrated confidence",
-  "LLM explains causes, symptoms, prevention schedule",
-  "Digital Twin updates — track your improvement over time",
+  "AI identifies your condition with a confidence score",
+  "Get a clear report on causes, symptoms, and a prevention plan",
+  "Your Skin Twin updates — track your improvement over time",
 ];
 
 export default function LandingPage() {

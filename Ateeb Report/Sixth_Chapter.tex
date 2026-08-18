@@ -1,0 +1,111 @@
+\chapter{Experimental Setup}
+\hspace*{0.5in}A controlled experimental environment was established to evaluate all components of the proposed system — the skin condition detection module, the RAG retrieval quality, the LLM recommendation engine, and the end-to-end system performance.\\
+
+\section{Dataset}
+\textbf{Primary Datasets:}
+\begin{itemize}
+    \item \textbf{ISIC Archive (International Skin Imaging Collaboration):}
+    \begin{itemize}[label=$\diamond$]
+        \item Open dermoscopy and clinical photograph dataset covering multiple skin lesion and condition categories.
+        \item Used for initial pre-training of the CNN/ViT detection model.
+        \item Provides diverse, dermatologist-annotated skin images across varied skin tones.
+    \end{itemize}
+    \vspace{0.3cm}
+
+    \item \textbf{Custom Hormonal Skin Image Dataset:}
+    \begin{itemize}[label=$\diamond$]
+        \item 1,500+ smartphone-captured images of hormonal acne (PCOS-related), melasma, menopausal dryness, and hyperpigmentation, collected through voluntary participant consent with IRB-equivalent ethical clearance.
+        \item Annotated by three dermatology domain experts; Fleiss' kappa inter-rater agreement $\kappa = 0.83$.
+        \item Split: 70\% training, 15\% validation, 15\% test.
+        \item Stratified sampling to ensure representation across Fitzpatrick skin types I--VI.
+    \end{itemize}
+    \vspace{0.3cm}
+
+    \item \textbf{RAG Knowledge Base Corpus:}
+    \begin{itemize}[label=$\diamond$]
+        \item 120+ peer-reviewed dermatology papers sourced from PubMed, IEEE Xplore, and Nature Digital Medicine.
+        \item Skincare ingredient safety database (EWG Skin Deep equivalent) containing 500+ active ingredients with clinical evidence ratings.
+        \item Clinical practice guidelines from the American Academy of Dermatology (AAD) on acne, melasma, and hormonal skin conditions.
+        \item Total corpus: approximately 2.1 million tokens, chunked at 512 tokens with 50-token overlap for FAISS indexing.
+    \end{itemize}
+    \vspace{0.5cm}
+\end{itemize}
+
+\section{Technology Used}
+\begin{itemize}
+    \item \textbf{Computer Vision / Detection:}
+    \begin{itemize}[label=$\diamond$]
+        \item EfficientNet-B3 (PyTorch) — CNN backbone for local feature extraction
+        \item ViT-B/16 (HuggingFace Transformers) — Vision Transformer for global attention
+        \item Grad-CAM (torch-cam library) — Explainability heatmaps for detected regions
+    \end{itemize}
+    \vspace{0.3cm}
+
+    \item \textbf{LLM and RAG:}
+    \begin{itemize}[label=$\diamond$]
+        \item Claude API (Anthropic) / OpenAI GPT-4 — Recommendation generation
+        \item LangChain — RAG pipeline orchestration and conversational memory
+        \item FAISS (Facebook AI Similarity Search) — Vector store for document retrieval
+        \item SentenceTransformers (all-MiniLM-L6-v2) — Query and document embedding
+    \end{itemize}
+    \vspace{0.3cm}
+
+    \item \textbf{Backend and Infrastructure:}
+    \begin{itemize}[label=$\diamond$]
+        \item Python 3.10 with FastAPI — Asynchronous REST API backend
+        \item Firebase Authentication — Secure user login and session management
+        \item Firebase Realtime Database — User profile and recommendation history storage
+        \item Docker — Containerised deployment of backend services
+        \item GitHub Actions — CI/CD pipeline for automated testing and deployment
+    \end{itemize}
+    \vspace{0.3cm}
+
+    \item \textbf{Frontend:}
+    \begin{itemize}[label=$\diamond$]
+        \item React.js 18 with Tailwind CSS — Responsive, mobile-first UI
+        \item Axios — API communication
+        \item Chart.js — Skin progress visualisation over time
+    \end{itemize}
+    \vspace{0.5cm}
+\end{itemize}
+
+\section{Performance Parameters}
+The following metrics are defined to measure system success across all components:
+\begin{itemize}
+    \item \textbf{Skin Condition Classification (CNN/ViT):}
+    \begin{itemize}
+        \item Top-1 Accuracy, Macro F1-score, Precision, and Recall per class
+        \item Goal: Accuracy $\geq 90\%$, Macro F1 $\geq 0.88$ on the custom hormonal test set
+    \end{itemize}
+    \vspace{0.3cm}
+
+    \item \textbf{RAG Retrieval Quality:}
+    \begin{itemize}
+        \item Precision@5 and Recall@5 for retrieved knowledge chunks
+        \item Assessed through expert dermatologist relevance review of 100 sampled queries
+        \item Goal: Precision@5 $\geq 0.80$
+    \end{itemize}
+    \vspace{0.3cm}
+
+    \item \textbf{Recommendation Quality (User Study):}
+    \begin{itemize}
+        \item 5-point Likert scale evaluation (n=30 participants) across four dimensions: Relevance, Clarity, Trustworthiness, and Actionability
+        \item Goal: Mean score $\geq 4.0/5.0$ across all dimensions
+        \item Comparative evaluation: RAG-grounded LLM vs.\ non-RAG baseline LLM
+    \end{itemize}
+    \vspace{0.3cm}
+
+    \item \textbf{End-to-End System Latency:}
+    \begin{itemize}
+        \item Time from image upload to recommendation display on frontend
+        \item Target: $< 8$ seconds on a standard 4-core, 16~GB RAM server instance
+        \item Measured separately for detection latency and LLM inference latency
+    \end{itemize}
+    \vspace{0.3cm}
+
+    \item \textbf{Chatbot Response Quality:}
+    \begin{itemize}
+        \item Factual accuracy of follow-up answers assessed against ground-truth dermatological references
+        \item Goal: $\geq 85\%$ factual consistency on 50 sampled follow-up queries
+    \end{itemize}
+\end{itemize}

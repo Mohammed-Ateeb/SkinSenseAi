@@ -38,8 +38,9 @@
 
 .glass-card {
   background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(32px) saturate(180%);
-  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  /* Lighter blur/saturate — cheaper to composite across many cards (perf) */
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
   border: 1px solid rgba(255, 255, 255, 0.55);
   border-top: 1px solid rgba(255, 255, 255, 0.8);
   border-left: 1px solid rgba(255, 255, 255, 0.7);
@@ -53,8 +54,8 @@
 
 .glass-card-sm {
   background: rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
   border: 1px solid rgba(255, 255, 255, 0.5);
   border-top: 1px solid rgba(255, 255, 255, 0.75);
   box-shadow:
@@ -131,9 +132,23 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes typingDot { 0%,80%,100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
 
+/* will-change + translateZ keep blob motion on the GPU compositor (smoother) */
+.animate-float-blob,
+.animate-float-blob-2,
+.animate-float-blob-3 { will-change: transform; transform: translateZ(0); }
 .animate-float-blob   { animation: floatBlob 10s ease-in-out infinite; }
 .animate-float-blob-2 { animation: floatBlob 14s ease-in-out infinite 2s reverse; }
 .animate-float-blob-3 { animation: floatBlob 18s ease-in-out infinite 6s; }
+
+/* Respect users who prefer less motion — also removes the animation cost */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float-blob,
+  .animate-float-blob-2,
+  .animate-float-blob-3 { animation: none !important; }
+  .animate-fade-up,
+  .animate-fade-in,
+  .animate-scale-in { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
 .animate-fade-up      { animation: fadeSlideUp 0.7s cubic-bezier(0.16,1,0.3,1) both; }
 .animate-fade-in      { animation: fadeIn 0.8s ease both; }
 .animate-scale-in     { animation: scaleIn 0.6s cubic-bezier(0.16,1,0.3,1) both; }

@@ -1,0 +1,204 @@
+\documentclass[12pt,a4]{report}
+\usepackage{textcomp}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{titletoc,tocloft}
+\usepackage{enumitem}
+\usepackage{amsmath,amssymb}
+\evensidemargin 0.5in
+\oddsidemargin 0.0in
+\topmargin 0.5in
+\textwidth 6.5in
+\headheight 0.3in
+\headsep 0in
+\usepackage[]{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows,shapes,snakes,automata,backgrounds,petri}
+\usepackage{tabularx}
+\usepackage{pgfgantt}
+\usepackage[margin=1in]{geometry}
+\usepackage{lscape}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage[titletoc]{appendix}
+\renewcommand{\bibname}{References}
+\setcounter{secnumdepth}{5}
+\usepackage{float}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{caption}
+\usepackage[ruled,vlined]{algorithm2e}
+\newcommand{\cellpadding}{\renewcommand{\arraystretch}{1.2}}
+\newcommand{\headerpadding}{\renewcommand{\arraystretch}{1.5}}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+\textheight 8.5in
+\newcommand{\pa}{\hspace{3ex}}
+\newcommand{\be}{\begin{equation}}
+\newcommand{\ee}{\end{equation}}
+\newcommand{\fs}{\hspace{2ex}}
+\newcommand{\no}{\noindent}
+\newcommand{\hs}{\hspace{1ex}}
+\newtheorem{myth}{Theorem}
+\newtheorem{prop}{Proposition}
+\newtheorem{cor}{Corollary}
+\newtheorem{defn}{Definition}
+\newcommand{\vs}{\vspace{0.2in}}
+\newcommand{\im}{{\lfloor m \rfloor}}
+\newtheorem{obs}{Observation}
+\newtheorem{lemma}{Lemma}
+\newcommand{\vf}{{\vspace{0.50in}}}
+\newcommand{\ms}{\;}
+\newcommand{\createGanttChart}{%
+    \begin{table}[htbp]
+    \centering
+    \begingroup
+    \renewcommand\sfdefault{phv}
+    \renewcommand\mddefault{mc}
+    \renewcommand\bfdefault{bc}
+    \sffamily
+    \begin{ganttchart}[
+        canvas/.append style={fill=none, draw=black!5, line width=.75pt},
+        hgrid style/.style={draw=black!5, line width=.75pt},
+        vgrid={*1{draw=black!5, line width=.75pt}},
+        title/.style={draw=none, fill=none},
+        title label font=\bfseries\footnotesize,
+        title label node/.append style={below=7pt},
+        include title in canvas=false,
+        bar label font=\mdseries\small\color{black!70},
+        bar label node/.append style={left=2cm},
+        bar/.append style={draw=none, fill=black!63},
+        bar incomplete/.append style={fill=blue!40},
+        bar progress label font=\mdseries\footnotesize\color{black!70},
+        group left shift=0,
+        group right shift=0,
+        group height=.5,
+        group peaks tip position=0,
+        group label node/.append style={left=.6cm},
+        group progress label font=\bfseries\small,
+        x unit=0.7cm,
+        title label node/.append style={xshift=0.1cm}
+    ]{1}{12}
+      \gantttitle[
+        title label node/.append style={below left=7pt and -3pt}
+      ]{2026}{12} \\
+      \gantttitlelist[
+        title label node/.append style={below left=7pt and -3pt}
+      ]{{"Jan"}, {"Feb"}, {"Mar"}, {"Apr"}, {"May"}, {"Jun"}, {"Jul"}, {"Aug"}, {"Sep"}, {"Oct"}, {"Nov"}, {"Dec"}}{1} \\
+      \ganttgroup{Project Timeline}{1}{12} \\
+      \ganttbar[name=planning]{\textbf{1.} Requirements \& Literature Review}{1}{2} \\
+      \ganttbar[name=research]{\textbf{2.} Dataset Collection \& Preprocessing}{3}{4} \\
+      \ganttbar[name=dataset]{\textbf{3.} CNN/ViT Model Development}{5}{6} \\
+      \ganttbar[name=prototype]{\textbf{4.} LLM + RAG Pipeline Integration}{7}{8} \\
+      \ganttbar[name=testing]{\textbf{5.} Frontend \& Backend Development}{9}{10} \\
+      \ganttbar[name=implementation]{\textbf{6.} Testing, Validation \& Deployment}{11}{12}\\
+      \ganttbar[name=documentation]{\textbf{7.} Documentation}{10}{12}
+    \end{ganttchart}
+    \endgroup
+    \caption{Project Timeline}
+    \label{gantt:project-timeline}
+    \end{table}
+}
+\input{psfig.sty}
+
+\begin{document}
+\pagebreak
+\pagenumbering{gobble}
+\vspace*{\fill}
+\begin{center}
+
+
+ {\large A PROJECT BASED SEMINAR REPORT}\\
+\vspace{0.5cm}
+on\\
+\vspace{0.5cm}
+
+{\bfseries \fontsize{16}{20}\selectfont
+Multi-Model AI-Based Personalized Skincare\\
+Recommendation System\\
+}
+ 
+ \\ \vspace*{2\baselineskip}}
+{\bfseries \fontsize{13}{12} \selectfont{for Hormonal Skin Conditions}  \\ \vspace*{2\baselineskip}}
+{\fontsize{12}{12} \selectfont Submitted towards the
+ \\Partial Fulfilment of the Requirements of} \\
+\vspace{0.5cm}
+{\bfseries \fontsize{14}{12} \selectfont Bachelor of Technology in \\Artificial Intelligence and Data Science\\
+\vspace*{1\baselineskip}}
+ By \\
+{\large \begin{center}
+\begin{tabular}{l l}
+Shaikh Mohammed Ateeb        & Seat No: T231311117 \\
+\end{tabular}
+\end{center}}
+Under the guidance of \\
+\vspace{0.5cm}
+{\bfseries \large Prof. Pranali Shinde} \\ \vspace{0.5cm}
+
+\begin{figure}[!h]
+\centering
+  \includegraphics[width=1.5in]{Logo.png}
+\end{figure}
+
+{\small Department of Artificial Intelligence and Data Science}\\
+K. K. WAGH EDUCATION SOCIETY\\
+K. K. WAGH INSTITUTE OF ENGINEERING EDUCATION AND RESEARCH\\
+Hirabai Haridas Vidyanagari, Amrutdham, Panchavati, Nashik, Maharashtra 422003 \\
+(An Autonomous Institute affiliated to Savitribai Phule Pune University)\\
+A. Y. 2025-2026 Sem II
+\vspace*{\fill}
+\end{center}
+
+\pagebreak
+
+\input{Certificate.tex}
+\pagebreak
+\input{Abstract.tex}
+\pagebreak
+\input{Ack.tex}
+\bibliographystyle{plain}
+\newpage
+
+\tableofcontents
+
+\let\origaddvspace\addvspace
+\renewcommand{\addvspace}[1]{}
+		
+	\setcounter{lofdepth}{2} \listoffigures
+
+\newpage
+
+	\setcounter{lotdepth}{2} \listoftables 	
+
+\newpage
+\pagenumbering{arabic}
+
+\fancyhf{}
+\rhead{Chapter: \thechapter}
+\renewcommand{\footrulewidth}{0.4pt}
+\lfoot{KKWIEER, Department of Artificial Intelligence and Data Science}
+\rfoot{Page \thepage}
+
+\fancypagestyle{plain}{
+    \fancyhf{}
+    \rhead{Chapter: \thechapter}
+    \lfoot{KKWIEER, Department of Artificial Intelligence and Data Science}
+    \rfoot{Page \thepage}
+    \renewcommand{\headrulewidth}{0.4pt}
+    \renewcommand{\footrulewidth}{0.4pt}
+}
+\pagenumbering{arabic}\setcounter{page}{1}
+\pagestyle{fancy}
+\input{First_Chapter.tex}
+\input{Second_Chapter.tex}
+\input{Third_Chapter.tex}
+\input{Fourth_Chapter.tex}
+\input{Fifth_Chapter.tex}
+\input{Sixth_Chapter.tex}
+\input{Seventh_Chapter.tex}
+\input{Eighth_Chapter.tex}
+\input{References.tex}
+\end{document}

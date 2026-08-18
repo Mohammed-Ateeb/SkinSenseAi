@@ -1,0 +1,33 @@
+\chapter{Outcome}
+\section{Type of Project}
+The proposed Generative AI-Based Personalized Skincare Recommendation System is primarily \textbf{application-oriented} with a strong research component, targeting deployment as a consumer-facing digital health product.
+
+\begin{itemize}
+\vspace{0.5cm}
+    \item \textbf{Application-Oriented:}\\
+    \\\hspace*{0.5in}The primary deliverable is a fully functional, web-accessible skincare recommendation system that any individual with a smartphone can use to receive personalised, hormone-aware skincare guidance. The emphasis is on practical clinical utility — the system must produce recommendations that are not only technically correct but also actionable, comprehensible, and safe for a general (non-medical) audience. The LLM + RAG architecture is specifically designed for real-world deployment constraints: low hallucination risk through evidence grounding, acceptable response latency ($< 8$ seconds), and a user-friendly interface that abstracts all AI complexity from the end user. The system integrates seamlessly into a standard web browser workflow — upload an image, fill a short form, receive a comprehensive skincare plan — with zero technical knowledge required from the user.\\
+
+    \item \textbf{Domain-Specific Contributions:}
+    \vspace{0.5cm}
+    \begin{itemize}[label=$\diamond$]
+    \item \textbf{Dermatology and Women's Health:} The system directly addresses hormonal skin conditions — PCOS acne, melasma, menopausal dryness — making specialist-grade personalised skincare accessible to a population that is chronically underserved by existing digital health tools.
+
+    \item \textbf{Generative AI in Healthcare:} This project demonstrates a responsible, RAG-grounded implementation of LLMs in a sensitive healthcare domain, contributing to the growing body of evidence on safe and effective Generative AI deployment in clinical advisory settings.
+
+    \item \textbf{Multimodal AI Integration:} The fusion of image-based condition detection (CNN/ViT) with structured metadata and retrieval-augmented generation represents a novel end-to-end multimodal pipeline for personalised health recommendation.
+    \end{itemize}
+    \vspace{0.5cm}
+
+    \item \textbf{Research-Oriented:}\\
+    \\\hspace*{0.5in}The project incorporates original research contributions in two key areas. First, the investigation of how hormonal profile metadata improves the quality and specificity of LLM-generated skincare recommendations over condition-detection-only baselines. Second, the evaluation of RAG-grounded versus non-RAG LLM recommendations in terms of clinical accuracy, user trust, and recommendation relevance — assessed through a structured user study with dermatologist review. These contributions advance the understanding of how retrieval augmentation can safely extend LLM capabilities in personalised healthcare applications.
+
+    \item \textbf{Expected Outcomes:}
+    \vspace{0.5cm}
+    \begin{itemize}[label=$\diamond$]
+        \item \textbf{CNN/ViT Detection Model:} Accurately classifies hormonal skin conditions (acne, melasma, rosacea, hyperpigmentation) from facial images with target accuracy $\geq 90\%$, producing a structured skin condition label and severity score that feeds into the recommendation pipeline.
+
+        \item \textbf{LLM Recommendation Engine:} Using RAG-based prompt engineering over a clinical skincare knowledge base, the LLM generates coherent, hormone-aware skincare routines, ingredient-level dermatology advice, and diet plans tailored to the detected condition and the user's hormonal profile (PCOS, thyroid, menopausal, etc.).
+
+        \item \textbf{Integrated Pipeline Output:} A closed-loop system that transforms raw patient input (facial image + lifestyle + hormonal symptoms) into a comprehensive, actionable skincare plan — including daily/weekly routines, product picks with contextual warnings, nutrient-specific dietary guidance, and a follow-up monitoring schedule.
+    \end{itemize}
+\end{itemize}

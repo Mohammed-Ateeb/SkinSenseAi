@@ -68,7 +68,7 @@ export default async function DashboardPage() {
           }} />
         </div>
 
-        <div className="relative p-6 md:p-10 max-w-3xl" style={{ zIndex: 1 }}>
+        <div className="relative p-6 md:p-10 max-w-3xl mx-auto" style={{ zIndex: 1 }}>
           <div className="mb-10">
             <div className="text-xs font-medium tracking-wider mb-1 uppercase" style={{ color: "var(--text-mute)" }}>{today}</div>
             <h1 className="font-display text-[2.5rem]" style={{ color: "var(--text)" }}>

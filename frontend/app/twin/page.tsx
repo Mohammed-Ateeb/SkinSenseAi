@@ -49,11 +49,12 @@ export default async function TwinPage() {
   try {
     const { data } = await supabase
       .from("skin_twin_snapshots")
-      .select("snapshot_id, face_geometry, barrier_integrity, created_at")
+      .select("id, face_geometry, barrier_integrity, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(15);
-    snapshots = (data as SnapshotRow[] | null) ?? [];
+    snapshots = ((data ?? []) as Array<Omit<SnapshotRow, 'snapshot_id'> & { id: string }>)
+      .map(s => ({ ...s, snapshot_id: s.id }));
   } catch { /* snapshots unavailable */ }
 
   const landmarks = twin?.face_geometry?.landmarks ?? null;

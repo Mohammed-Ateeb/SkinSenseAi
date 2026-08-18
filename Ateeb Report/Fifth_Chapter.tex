@@ -1,0 +1,61 @@
+\chapter{Project Plan}
+\section{Project Timeline}
+
+\createGanttChart
+
+\section{Team Organization}
+The project is carried out by a team of four members from TY AI\&DS A, each assigned specific roles aligned with their individual competencies to ensure effective collaboration and delivery.\\
+
+\subsection{Team Structure}
+\begin{enumerate}
+    \item \textbf{Shaikh Mohammed Ateeb  -- LLM, RAG Pipeline \& Backend Lead}\\\\
+    Ateeb is responsible for the core Generative AI pipeline — the LLM recommendation engine, the RAG knowledge retrieval system, and the FastAPI backend that orchestrates all system components. His role is central to the system's personalisation and recommendation quality.\\\\
+    Key Responsibilities:
+    \begin{itemize}[label=$\diamond$]
+        \item LangChain RAG pipeline design, FAISS vector store setup, and SentenceTransformer embedding integration
+        \item Claude / GPT-4 API integration and prompt engineering for hormone-aware skincare recommendations
+        \item FastAPI backend development: API routing, input validation, auth middleware, LLM orchestration
+        \item LLM-powered chatbot with LangChain conversational memory
+        \item Firebase Realtime Database schema design and integration
+        \item Dermatological knowledge base curation for RAG indexing
+    \end{itemize}
+    \vspace{0.5cm}
+
+    \item \textbf{Prathamesh Warade -- DevOps, Testing \& Evaluation Lead}\\\\
+    Prathamesh manages deployment infrastructure, CI/CD pipelines, and the systematic evaluation of system performance across all components.\\\\
+    Key Responsibilities:
+    \begin{itemize}[label=$\diamond$]
+        \item Docker containerisation of FastAPI backend services
+        \item GitHub Actions CI/CD pipeline setup and management
+        \item Unit testing, integration testing, and load testing of API endpoints
+        \item User study coordination (n=30 participants) and Likert-scale survey analysis
+        \item End-to-end latency profiling and optimisation
+        \item Final documentation and deployment on cloud (AWS/GCP)
+    \end{itemize}
+    \vspace{0.5cm}
+
+    \item \textbf{Deepali Patil -- Data Engineering \& ML Model Lead}\\\\
+    Deepali handles all aspects of dataset collection, preprocessing, augmentation, and model training for the skin condition detection module.\\\\
+    Key Responsibilities:
+    \begin{itemize}[label=$\diamond$]
+        \item ISIC archive and custom hormonal skin dataset collection and preprocessing
+        \item Data augmentation pipeline (rotation, colour jitter, random flip, Gaussian noise)
+        \item EfficientNet-B3 CNN and ViT-B/16 model fine-tuning using PyTorch/HuggingFace
+        \item Late-fusion strategy design and ablation studies
+        \item Grad-CAM explainability implementation for detection module
+        \item Model performance benchmarking and comparison against baseline architectures
+    \end{itemize}
+    \vspace{0.5cm}
+
+    \item \textbf{Aishwarya Sahane -- Frontend Development \& UX Lead}\\\\
+    Aishwarya leads the design and development of the user-facing web application, ensuring accessibility, responsiveness, and a seamless user experience.\\\\
+    Key Responsibilities:
+    \begin{itemize}[label=$\diamond$]
+        \item React.js 18 + Tailwind CSS frontend development
+        \item Skin image upload interface and progress tracking dashboard
+        \item Firebase Authentication integration on the frontend
+        \item Recommendation output display components with expandable sections
+        \item User feedback collection interface (thumbs up/down per recommendation section)
+        \item Responsive design and accessibility compliance (WCAG 2.1)
+    \end{itemize}
+\end{enumerate}

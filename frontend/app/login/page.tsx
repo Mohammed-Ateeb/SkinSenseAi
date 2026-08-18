@@ -76,7 +76,7 @@ export default function LoginPage() {
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="text-xs font-medium" style={{ color: "var(--text-dim)" }}>Password</label>
-                <span className="text-xs cursor-pointer" style={{ color: "var(--gold)" }}>Forgot password?</span>
+                <Link href="/forgot-password" className="text-xs cursor-pointer hover:underline" style={{ color: "var(--gold)" }}>Forgot password?</Link>
               </div>
               <div className="relative">
                 <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" width="16" height="16" viewBox="0 0 16 16" fill="none">

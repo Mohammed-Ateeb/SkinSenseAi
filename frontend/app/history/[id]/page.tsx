@@ -117,10 +117,10 @@ export default async function HistoryDetailPage({ params }: { params: { id: stri
           </div>
         )}
 
-        {/* LLM explanation */}
+        {/* Skin report */}
         {analysis.llm_explanation && (
           <div className="glass-card p-6 mb-4">
-            <div className="text-xs font-medium uppercase tracking-wider mb-4" style={{ color: "var(--text-mute)" }}>AI Analysis</div>
+            <div className="text-xs font-medium uppercase tracking-wider mb-4" style={{ color: "var(--text-mute)" }}>Your Skin Report</div>
             <div className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--text-dim)", fontWeight: 300 }}>
               {analysis.llm_explanation}
             </div>
@@ -130,7 +130,7 @@ export default async function HistoryDetailPage({ params }: { params: { id: stri
         {/* Products */}
         {products.length > 0 && (
           <div className="glass-card p-5 mb-8">
-            <div className="text-xs font-medium uppercase tracking-wider mb-4" style={{ color: "var(--text-mute)" }}>Recommended OTC Products</div>
+            <div className="text-xs font-medium uppercase tracking-wider mb-4" style={{ color: "var(--text-mute)" }}>Recommended Products</div>
             <div className="space-y-3">
               {products.slice(0, 4).map((p, i) => (
                 <div key={i} className="flex items-start gap-3 py-3"

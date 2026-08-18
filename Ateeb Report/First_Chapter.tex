@@ -1,0 +1,51 @@
+\chapter{Introduction}
+\section{Project Idea}
+\hspace*{0.5in}Skin conditions triggered or worsened by hormonal imbalances — including PCOS-related acne, melasma, menopausal dryness, and thyroid-induced hyperpigmentation — affect millions of individuals worldwide yet remain poorly addressed by existing skincare products and applications. The root cause of this gap is straightforward: most commercial skincare systems treat skin as a static, context-free entity. They fail to account for the dynamic hormonal environment that governs sebum production, inflammation response, skin barrier integrity, and cell turnover rate.\\\\
+\hspace*{0.5in}This project presents a \textbf{Generative AI-Based Personalized Skincare Recommendation System for Hormonal Skin Conditions} — a Multi-Model intelligent system that bridges AI-based skin condition detection with Large Language Model (LLM)-driven recommendation generation. The system allows a user to upload a facial skin image, which is analysed by a Vision AI model (CNN / ViT) to detect and classify the skin condition. A Generative AI engine then synthesises this detection output with the user's hormonal profile and lifestyle metadata to produce a fully personalised skincare routine, dietary guidance, ingredient-level dermatology advice, and a follow-up monitoring schedule. An LLM-powered chatbot further supports real-time, contextually grounded follow-up queries.\\\\
+The core technologies powering the system are:
+\begin{itemize}
+    \item \textbf{CNN / Vision Transformer (ViT):} For classifying hormonal skin conditions — acne, melasma, rosacea, hyperpigmentation — from user-uploaded facial photographs with high accuracy.
+
+    \item \textbf{Large Language Model (LLM — Claude / GPT-4):} For reasoning over the detected condition, retrieved clinical knowledge, and user profile to generate coherent, personalised, hormone-aware skincare plans.
+
+    \item \textbf{Retrieval-Augmented Generation (RAG) via LangChain:} For grounding every recommendation in peer-reviewed dermatological literature and clinical guidelines, preventing hallucinated or unsupported medical advice.
+
+    \item \textbf{React.js + FastAPI + Firebase:} A modern, scalable full-stack architecture delivering responsive user experience with secure data management.
+\end{itemize}
+\hspace*{0.5in}The system is uniquely positioned to serve individuals experiencing hormonal skin challenges across life stages — adolescent acne, postpartum skin changes, PCOS-related flare-ups, and perimenopausal dryness — making specialist-grade skincare guidance accessible to all.\\
+
+\section{Motivation}
+\hspace*{0.5in}Despite the well-established clinical relationship between hormones and skin, no commercially available AI skincare system currently integrates hormonal profiling with generative recommendation. This disconnect motivates the present work.\\\\
+The key motivating factors are:
+\begin{enumerate}
+    \item \textbf{Unmet Clinical Need:} Hormonal skin conditions such as PCOS-related acne affect an estimated 70--80\% of individuals with PCOS. Existing apps like SkinVision and HautAI focus on lesion screening or skin age estimation but do not address hormonal context or generate treatment routines.
+
+    \item \textbf{LLMs Enable Contextual Reasoning:} Recent advances in large language models — as demonstrated by Luo et al. (2025) in LLM-guided medical image diagnosis and SkinGPT-4 (2024) for dermatological dialogue — show that LLMs can reason across Multi-Model patient inputs to generate nuanced clinical guidance. This capability, when paired with RAG for evidence grounding, makes personalised recommendation both feasible and reliable.
+
+    \item \textbf{Image AI Matures for Dermatology:} Works by Jiang et al. (2021) on deep CNN-based acne severity grading and Wu et al. (2024) on CNN algorithms for skin disease classification demonstrate that computer vision models can match or exceed human-level performance on skin condition detection tasks. These form the detection backbone of the proposed system.
+
+    \item \textbf{Accessibility and Democratisation:} Many individuals in tier-2 cities and rural regions lack access to qualified dermatologists. An AI-powered mobile-accessible system can deliver specialist-quality skincare guidance at near-zero marginal cost.
+
+    \item \textbf{Evidence-Grounded Safety:} Unlike black-box recommendation apps, the RAG pipeline ensures every output cites its source knowledge, enabling users and clinicians to audit the reasoning behind each suggestion — a critical requirement for healthcare AI as outlined by Kocbek et al. (2025) in their work on HIPAA/GDPR-compliant prompt engineering for medical LLMs.
+
+    \item \textbf{Proactive Skin Management:} By incorporating hormonal profile data, the system can anticipate likely skin events (e.g., pre-menstrual acne surge) and suggest preventive care strategies — shifting from reactive treatment to proactive personalised health management.
+
+    \item \textbf{Diet--Skin Connection:} Inspired by the NutriVision work of S.~V.~Lakshmi \& K.~Rishikesh (2025) on GenAI-powered personalised dietary needs using ResNet50, this system extends the same principle to skincare — providing nutrient-specific dietary recommendations alongside topical skincare advice.
+\end{enumerate}
+\vspace{1\baselineskip}
+\hspace*{0.5in}In summary, the project is motivated by the convergence of mature computer vision, capable LLMs, and a clinically significant but technologically underserved domain — hormonal skincare.\\
+
+\section{Literature Survey}
+\hspace*{0.5in}A structured review of sixteen recent research works was conducted across four thematic areas: LLM-based medical diagnosis, NLP and conversational AI for dermatology, CNN-based skin disease classification, and Generative AI in healthcare. This review directly informed the architectural decisions and methodology of the proposed system.\\
+
+\subsection*{Literature Review : NLP and Conversational AI for Skincare}
+
+\hspace*{0.3in}\textbf{Hameed et al. (2020)} built an NLP-based chatbot for skincare product recommendation using user-described skin concerns. Their rule-based approach successfully matched user descriptions to product categories but was limited to text input, lacked Generative AI, and had no hormonal context awareness. The proposed system supersedes this by using vision AI for objective skin assessment and LLMs for generative, contextualised outputs.\\
+
+\hspace*{0.3in}\textbf{Jiang et al. (2021)} developed a deep CNN-based system for acne severity grading from facial images, achieving strong classification accuracy on benchmark datasets. Their contribution provides foundational methodology for the detection component of the proposed system. The key gap — absence of a recommendation or treatment engine — is directly addressed in this project through the LLM pipeline.\\
+
+\hspace*{0.3in}\textbf{Liao et al. (2022)} proposed a GPT-based conversational agent for dermatological clinical support, demonstrating the utility of GPT models in answering dermatological queries. However, their system was not personalised and did not integrate Multi-Model patient inputs. The proposed system advances this by incorporating image data, hormonal metadata, and a RAG layer for grounded generation.\\
+
+\hspace*{0.3in}\textbf{Sandhu et al. (2023)} generated personalised health plans using LLMs and structured patient profile data, demonstrating that patient history can be effectively used to drive LLM-based health plan generation. While not applied to skincare or hormonal conditions, their methodology directly informs the prompt construction strategy used in the proposed system's LLM recommendation engine.\\
+
+\hspace*{0.3in}\textbf{SkinGPT-4 [5]} \hspace*{0.3in}\textbf{Sandhu et al. (2023)} generated personalised health plans using LLMs and structured patient profile data, demonstrating that patient history can be effectively used to drive LLM-based health plan generation. While not applied to skincare or hormonal conditions, their methodology directly informs the prompt construction strategy used in the proposed system's LLM recommendation engine.\\\\

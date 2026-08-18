@@ -46,6 +46,10 @@ export default async function HistoryPage() {
           <p className="text-sm mt-2" style={{ color: "var(--text-mute)" }}>
             {analyses?.length ?? 0} total {(analyses?.length ?? 0) === 1 ? "analysis" : "analyses"}
           </p>
+          <p className="text-xs mt-3 leading-relaxed max-w-md" style={{ color: "var(--text-mute)" }}>
+            Your photos are deleted right after analysis — never stored. We keep only your results: the
+            detected condition, confidence, skin report, and product recommendations, so you can track progress over time.
+          </p>
         </div>
 
         {!analyses || analyses.length === 0 ? (

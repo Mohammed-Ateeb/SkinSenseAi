@@ -116,6 +116,23 @@ async def analyze(body: AnalyzeRequest, user: CurrentUser = Depends(get_current_
 
     recommended_ids = [str(p.product_id) for p in rag_context.products[:3] if p.product_id]
 
+    # Payloads persisted for the History detail page (image itself is never stored)
+    differentials_payload = [
+        {"condition": d.condition, "confidence": d.confidence}
+        for d in predict_result.differential_diagnoses
+    ]
+    products_payload = [
+        {
+            "product_id": str(p.product_id),
+            "name": p.name,
+            "active_ingredients": p.active_ingredients,
+            "priority_score": p.priority_score,
+            "similarity": p.similarity,
+        }
+        for p in rag_context.products
+    ]
+    guardrail_payload = [f.__dict__ for f in validation_result.flagged_items]
+
     # Build face_geometry from browser landmarks if provided
     face_geometry = None
     if body.landmarks:
@@ -135,6 +152,12 @@ async def analyze(body: AnalyzeRequest, user: CurrentUser = Depends(get_current_
         "llm_explanation": validation_result.cleaned_text,
         "recommended_product_ids": recommended_ids,
         "zone_results": _zone_bboxes(body.landmarks) if body.landmarks else None,
+        # Columns read back by the History detail page
+        "differential_diagnoses": differentials_payload,
+        "recommended_products": products_payload,
+        "low_confidence": predict_result.low_confidence_flag,
+        "guardrail_flags": guardrail_payload,
+        "fitzpatrick_skin_tone": body.fitzpatrick_skin_tone,
     }).execute()
 
     if not ar_result.data:
@@ -193,17 +216,8 @@ async def analyze(body: AnalyzeRequest, user: CurrentUser = Depends(get_current_
             for d in predict_result.differential_diagnoses
         ],
         llm_explanation=validation_result.cleaned_text,
-        recommended_products=[
-            {
-                "product_id": str(p.product_id),
-                "name": p.name,
-                "active_ingredients": p.active_ingredients,
-                "priority_score": p.priority_score,
-                "similarity": p.similarity,
-            }
-            for p in rag_context.products
-        ],
+        recommended_products=products_payload,
         twin_state=twin_state_dict,
-        guardrail_flags=[f.__dict__ for f in validation_result.flagged_items],
+        guardrail_flags=guardrail_payload,
         low_confidence=predict_result.low_confidence_flag,
     )

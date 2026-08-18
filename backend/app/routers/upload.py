@@ -15,6 +15,7 @@ class UploadResponse(BaseModel):
     image_id: str
     upload_url: str
     storage_path: str
+    token: str
 
 @router.post("/request-url", response_model=UploadResponse)
 async def request_upload_url(
@@ -22,7 +23,6 @@ async def request_upload_url(
     user: CurrentUser = Depends(get_current_user),
 ):
     supabase = get_supabase()
-    file_ext = body.filename.rsplit(".", 1)[-1] if "." in body.filename else "jpg"
     storage_path = f"{user.id}/{uuid.uuid4()}/{body.filename}"
 
     result = supabase.table("uploaded_images").insert({
@@ -35,10 +35,21 @@ async def request_upload_url(
 
     image_id = result.data[0]["id"]
 
-    signed = supabase.storage.from_("skin-images").create_signed_upload_url(storage_path)
+    try:
+        signed = supabase.storage.from_("skin-images").create_signed_upload_url(storage_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create signed upload URL: {e}")
+
+    # supabase-py returns snake_case keys ("signed_url", "token", "path").
+    # Accept camelCase too in case of client-version differences.
+    signed_url = signed.get("signed_url") or signed.get("signedURL") or signed.get("signedUrl")
+    token = signed.get("token")
+    if not signed_url or not token:
+        raise HTTPException(status_code=500, detail=f"Malformed signed upload response: {list(signed.keys())}")
 
     return UploadResponse(
         image_id=image_id,
-        upload_url=signed["signedURL"],
+        upload_url=signed_url,
         storage_path=storage_path,
+        token=token,
     )

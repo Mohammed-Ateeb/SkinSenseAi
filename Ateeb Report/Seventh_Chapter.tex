@@ -1,0 +1,40 @@
+\chapter{PO \& PSO Mapping}
+\section{Program Outcome (PO) Mapping}
+
+{\cellpadding
+\begin{longtable}{|>{\centering}p{1.5cm}|p{5cm}|>{\centering}p{1.2cm}|p{5cm}|}
+\hline
+\textbf{PO} & \textbf{Description} & \textbf{Level} & \textbf{Justification} \\ \hline
+\cellpadding
+PO1 & \textbf{Engineering knowledge:} Apply knowledge of mathematics, science, and engineering fundamentals to AI and DS problems. & 3 & The system applies transformer mathematics (self-attention, positional encoding), vector space operations (cosine similarity, FAISS indexing), and probabilistic language modelling (softmax, temperature sampling) to solve a real-world healthcare problem. \\ \hline
+PO2 & \textbf{Problem analysis:} Identify, formulate, and analyze complex problems using principles of math, natural science, and engineering. & 3 & The problem of hormonal skin variability and its interaction with AI-based detection and LLM reasoning was rigorously analysed through a structured 4-part literature review covering 16 research papers, leading to a well-defined multimodal AI approach. \\ \hline
+PO3 & \textbf{Design/development of solutions:} Design system components or processes considering societal, safety, and environmental factors. & 3 & The RAG-LLM architecture was designed with user safety (medical disclaimers, evidence-grounded outputs), inclusivity (diverse skin tone dataset), and scalability in mind. The system architecture separates concerns across detection, retrieval, generation, and delivery layers. \\ \hline
+PO4 & \textbf{Conduct investigations of complex problems:} Conduct research-based investigations, design experiments, analyze data, and synthesize conclusions. & 3 & A systematic literature review of 16 papers across four thematic domains was conducted. Experimental evaluation spans classification benchmarking, RAG retrieval quality, user study, and latency profiling — each with defined success metrics and evaluation protocols. \\ \hline
+PO5 & \textbf{Modern tool usage:} Create and apply modern tools, modeling, and engineering techniques. & 3 & State-of-the-art tools including ViT-B/16, EfficientNet-B3, LangChain, FAISS, SentenceTransformers, Claude API, FastAPI, Firebase, Docker, and GitHub Actions are all applied in building and deploying the system. \\ \hline
+PO6 & \textbf{The engineer and society:} Apply contextual knowledge to societal, health, safety, legal, and cultural issues. & 3 & The system directly addresses a societal health inequity — lack of access to personalised dermatological care — with explicit design considerations for skin tone diversity (Fitzpatrick scale), data privacy (Firebase security rules), and responsible AI use (medical disclaimer, no prescription output). \\ \hline
+PO7 & \textbf{Environment and sustainability:} Understand societal/environmental impact and sustainable development. & 2 & By reducing unnecessary dermatology clinic visits for manageable hormonal skin conditions, the system contributes to sustainable healthcare resource utilisation. The use of cloud-native, serverless-capable architecture minimises hardware footprint. \\ \hline
+PO8 & \textbf{Ethics:} Apply ethical principles and commit to ethics and professional responsibilities. & 3 & RAG grounding prevents hallucinated medical advice. All user data is handled under Firebase security rules. The system includes a clear medical disclaimer. Dataset collection followed ethical consent protocols. Prompt engineering excludes prescription medication generation. \\ \hline
+
+PO9 & \textbf{Communication:} Communicate effectively on complex engineering activities. & 3 & Technical communication maintained through structured seminar presentations, this report, and API documentation. The system's frontend translates complex AI output into clear, user-friendly natural language recommendations. \\ \hline
+PO10 & \textbf{Project management and finance:} Apply project management and financial principles in engineering work. & 2 & A Gantt chart-based project plan was developed with clear phase milestones. API usage costs (Claude, Firebase) were factored into the system design, with rate limiting implemented to manage LLM API expenditure. \\ \hline
+PO11 & \textbf{Life-long learning:} Recognize the need for life-long learning amidst technological change. & 3 & The rapid evolution of LLMs, RAG frameworks, and vision transformers required continuous self-directed learning throughout the project, including study of LangChain documentation, HuggingFace model releases, and recent dermatology AI literature. \\ \hline
+\caption{Program Outcomes (PO) Mapping -- Generative AI Skincare System}
+\label{tab:PO_Mapping}
+\end{longtable}
+}
+\newpage
+\vspace{0.5in}
+
+\section{Program Specific Outcome (PSO) Mapping}
+
+{\cellpadding
+\begin{longtable}{|>{\centering}p{1.8cm}|p{4.5cm}|>{\centering}p{1.8cm}|p{4.5cm}|}
+\hline
+\textbf{PSO Number} & \textbf{Description} & \textbf{Mapping Level} & \textbf{Justification} \\ \hline
+\cellpadding
+PSO1 & Interpret data and apply AI algorithms to provide solutions. & 3 & Skin image data, hormonal metadata, and unstructured dermatological literature are all interpreted through specialised AI algorithms (CNN, ViT, SentenceTransformers, FAISS, LLM) to deliver a personalised, evidence-grounded skincare solution. \\ \hline
+PSO2 & Apply standard practices, strategies, and models of Data Science to discover knowledge. & 3 & Standard data science practices — train/validation/test splitting, stratified sampling, cross-validation, cosine similarity retrieval, Likert-scale evaluation, and model performance benchmarking — are applied systematically throughout the project lifecycle. \\ \hline
+\caption{Program Specific Outcomes (PSO) Mapping -- Generative AI Skincare System}
+\label{tab:PSO_Mapping}
+\end{longtable}
+}

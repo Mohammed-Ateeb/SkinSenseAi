@@ -56,3 +56,6 @@ dev-server.log
 # Temp
 *.tmp
 *.temp
+
+# Playwright MCP screenshots (transient tool artifacts)
+.playwright-mcp/
