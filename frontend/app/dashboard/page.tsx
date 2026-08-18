@@ -68,7 +68,7 @@ export default async function DashboardPage() {
   const twin = twinBundle?.current ?? null;
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "var(--cream)" }}>
+    <div className="flex h-screen overflow-hidden" style={{ background: "linear-gradient(135deg, #EDD9C0 0%, #E8C9A0 40%, #F0D5C0 100%)" }}>
 
       {/* Sidebar */}
       <aside className="hidden md:flex flex-col w-60 flex-shrink-0"
@@ -121,12 +121,12 @@ export default async function DashboardPage() {
 
         <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden style={{ zIndex: 0 }}>
           <div className="animate-float-blob absolute" style={{
-            width: "400px", height: "400px", borderRadius: "50%", top: "-50px", right: "10%",
-            background: "radial-gradient(circle, rgba(212,168,83,0.18) 0%, transparent 70%)", filter: "blur(50px)",
+            width: "600px", height: "600px", borderRadius: "50%", top: "-100px", right: "5%",
+            background: "radial-gradient(circle, rgba(212,168,83,0.55) 0%, rgba(201,150,62,0.25) 50%, transparent 70%)", filter: "blur(80px)",
           }} />
           <div className="animate-float-blob-2 absolute" style={{
-            width: "350px", height: "350px", borderRadius: "50%", bottom: "10%", left: "20%",
-            background: "radial-gradient(circle, rgba(232,146,124,0.14) 0%, transparent 70%)", filter: "blur(45px)",
+            width: "500px", height: "500px", borderRadius: "50%", bottom: "5%", left: "15%",
+            background: "radial-gradient(circle, rgba(232,146,124,0.5) 0%, rgba(220,120,100,0.2) 50%, transparent 70%)", filter: "blur(70px)",
           }} />
         </div>
 

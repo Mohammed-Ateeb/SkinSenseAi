@@ -15,25 +15,34 @@ export default function LoginPage() {
     setError(null);
     setIsSubmitting(true);
     const { error } = await signIn(email, password);
-    if (error) { setError(error); setIsSubmitting(false); }
+    if (error) {
+      setError(error);
+      setIsSubmitting(false);
+    } else {
+      // Hard redirect ensures middleware reads fresh session cookies
+      window.location.href = '/dashboard';
+    }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden"
-      style={{ background: "linear-gradient(135deg, #FAF6F1 0%, #F5EFE6 50%, #FBF0E8 100%)" }}>
+      style={{ background: "linear-gradient(135deg, #EDD9C0 0%, #E8C9A0 40%, #F0D5C0 100%)" }}>
 
-      {/* Blobs */}
+      {/* Vibrant blobs — needed for backdrop-filter blur to look like glass */}
       <div className="animate-float-blob absolute pointer-events-none" style={{
-        width: "500px", height: "500px", borderRadius: "50%", top: "-100px", right: "-100px",
-        background: "radial-gradient(circle, rgba(212,168,83,0.3) 0%, transparent 70%)", filter: "blur(60px)",
+        width: "600px", height: "600px", borderRadius: "50%", top: "-150px", right: "-120px",
+        background: "radial-gradient(circle, rgba(212,168,83,0.65) 0%, rgba(201,150,62,0.3) 50%, transparent 70%)",
+        filter: "blur(70px)",
       }} />
       <div className="animate-float-blob-2 absolute pointer-events-none" style={{
-        width: "400px", height: "400px", borderRadius: "50%", bottom: "-80px", left: "-80px",
-        background: "radial-gradient(circle, rgba(232,146,124,0.25) 0%, transparent 70%)", filter: "blur(50px)",
+        width: "500px", height: "500px", borderRadius: "50%", bottom: "-100px", left: "-100px",
+        background: "radial-gradient(circle, rgba(232,146,124,0.6) 0%, rgba(220,120,100,0.3) 50%, transparent 70%)",
+        filter: "blur(60px)",
       }} />
       <div className="animate-float-blob-3 absolute pointer-events-none" style={{
-        width: "300px", height: "300px", borderRadius: "50%", top: "50%", left: "20%",
-        background: "radial-gradient(circle, rgba(127,216,190,0.18) 0%, transparent 70%)", filter: "blur(40px)",
+        width: "350px", height: "350px", borderRadius: "50%", top: "30%", left: "15%",
+        background: "radial-gradient(circle, rgba(127,216,190,0.45) 0%, rgba(100,200,170,0.2) 50%, transparent 70%)",
+        filter: "blur(50px)",
       }} />
 
       {/* Card */}
@@ -47,7 +56,8 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="mb-5 px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(232,146,124,0.12)", color: "#B85040", border: "1px solid rgba(232,146,124,0.2)" }}>
+            <div className="mb-5 px-4 py-3 rounded-xl text-sm"
+              style={{ background: "rgba(232,146,124,0.15)", color: "#B85040", border: "1px solid rgba(232,146,124,0.3)" }}>
               {error}
             </div>
           )}

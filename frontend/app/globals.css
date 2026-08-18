@@ -5,101 +5,110 @@
 @tailwind utilities;
 
 @layer base {
-  ::selection {
-    background: rgba(201,150,62,0.2);
-    color: #C9963E;
-  }
+  ::selection { background: rgba(201,150,62,0.25); color: #C9963E; }
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(201,150,62,0.3); border-radius: 999px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(201,150,62,0.5); }
+  ::-webkit-scrollbar-thumb { background: rgba(201,150,62,0.35); border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(201,150,62,0.55); }
   * { box-sizing: border-box; }
   body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background: #FAF6F1;
+    background: linear-gradient(135deg, #EDD9C0 0%, #E8C9A0 40%, #F0D5C0 100%);
+    min-height: 100vh;
     color: #2A1F14;
     -webkit-font-smoothing: antialiased;
   }
-  :focus-visible {
-    outline: 2px solid #C9963E;
-    outline-offset: 3px;
-    border-radius: 4px;
-  }
+  :focus-visible { outline: 2px solid #C9963E; outline-offset: 3px; border-radius: 4px; }
 }
 
 :root {
-  --cream:      #FAF6F1;
-  --cream-2:    #F5EFE6;
-  --glass:      rgba(255,255,255,0.65);
-  --glass-2:    rgba(255,255,255,0.45);
-  --glass-bdr:  rgba(255,255,255,0.85);
-  --gold:       #C9963E;
-  --gold-lt:    #D4A853;
-  --coral:      #E8927C;
-  --sage:       #7FD8BE;
-  --text:       #2A1F14;
-  --text-dim:   #6B5744;
-  --text-mute:  #A89080;
+  --cream:     #F5EDE0;
+  --cream-2:   #EEE0CC;
+  --gold:      #C9963E;
+  --gold-lt:   #D4A853;
+  --coral:     #E8927C;
+  --sage:      #7FD8BE;
+  --text:      #2A1F14;
+  --text-dim:  #6B5744;
+  --text-mute: #A89080;
 }
 
-/* ── Glass cards ──────────────────────────────────────── */
+/* ─── TRUE GLASSMORPHISM ───────────────────────────────────────────────────── */
+/* Requires a colorful background behind — blobs provide that                  */
+
 .glass-card {
-  background: rgba(255,255,255,0.65);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255,255,255,0.85);
-  box-shadow: 0 8px 32px rgba(42,31,20,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-top: 1px solid rgba(255, 255, 255, 0.8);
+  border-left: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 8px 40px rgba(42, 31, 20, 0.15),
+    0 2px 8px rgba(42, 31, 20, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.2);
   border-radius: 24px;
 }
+
 .glass-card-sm {
-  background: rgba(255,255,255,0.55);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255,255,255,0.8);
-  box-shadow: 0 4px 16px rgba(42,31,20,0.06);
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-top: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow:
+    0 4px 20px rgba(42, 31, 20, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
   border-radius: 16px;
 }
+
 .glass-input {
-  background: rgba(255,255,255,0.5);
+  background: rgba(255, 255, 255, 0.35);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,0.8);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: 12px;
   color: #2A1F14;
   outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
 }
 .glass-input:focus {
-  border-color: rgba(201,150,62,0.5);
-  box-shadow: 0 0 0 3px rgba(201,150,62,0.12);
+  background: rgba(255, 255, 255, 0.5);
+  border-color: rgba(201, 150, 62, 0.6);
+  box-shadow: 0 0 0 3px rgba(201, 150, 62, 0.15), inset 0 1px 0 rgba(255,255,255,0.8);
 }
 .glass-input::placeholder { color: #A89080; }
 
-/* ── Buttons ───────────────────────────────────────────── */
+/* ─── BUTTONS ──────────────────────────────────────────────────────────────── */
 .btn-gold {
   background: linear-gradient(135deg, #D4A853 0%, #C9963E 100%);
   color: white;
   font-weight: 600;
   border-radius: 14px;
   transition: all 0.2s;
-  box-shadow: 0 4px 16px rgba(201,150,62,0.3);
+  box-shadow: 0 4px 20px rgba(201,150,62,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
   cursor: pointer;
 }
-.btn-gold:hover { opacity: 0.92; transform: translateY(-1px); box-shadow: 0 6px 24px rgba(201,150,62,0.4); }
+.btn-gold:hover { opacity: 0.92; transform: translateY(-1px); box-shadow: 0 8px 28px rgba(201,150,62,0.5); }
 .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
 .btn-glass {
-  background: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.25);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,0.8);
+  border: 1px solid rgba(255,255,255,0.55);
+  border-top: 1px solid rgba(255,255,255,0.8);
   border-radius: 14px;
   color: #6B5744;
   transition: all 0.2s;
   cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
 }
-.btn-glass:hover { background: rgba(255,255,255,0.75); }
+.btn-glass:hover { background: rgba(255,255,255,0.4); }
 
-/* ── Typography ────────────────────────────────────────── */
+/* ─── TYPOGRAPHY ───────────────────────────────────────────────────────────── */
 .font-display {
   font-family: 'Barlow Condensed', 'Inter', system-ui, sans-serif;
   font-weight: 800;
@@ -109,77 +118,41 @@
 }
 .tabular-nums { font-variant-numeric: tabular-nums; }
 
-/* ── Animations ────────────────────────────────────────── */
+/* ─── BLOB ANIMATIONS ──────────────────────────────────────────────────────── */
 @keyframes floatBlob {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -20px) scale(1.05); }
-  66% { transform: translate(-20px, 15px) scale(0.97); }
+  33%  { transform: translate(40px, -30px) scale(1.06); }
+  66%  { transform: translate(-25px, 20px) scale(0.96); }
 }
-@keyframes fadeSlideUp {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.94); }
-  to { opacity: 1; transform: scale(1); }
-}
-@keyframes progressFill {
-  from { width: 0%; }
-  to { width: var(--pct); }
-}
+@keyframes fadeSlideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn      { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scaleIn     { from { opacity: 0; transform: scale(0.93); } to { opacity: 1; transform: scale(1); } }
+@keyframes progressFill { from { width: 0%; } to { width: var(--pct); } }
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes typingDot {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-  40% { transform: scale(1); opacity: 1; }
-}
+@keyframes typingDot { 0%,80%,100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
 
-.animate-float-blob { animation: floatBlob 12s ease-in-out infinite; }
-.animate-float-blob-2 { animation: floatBlob 16s ease-in-out infinite 3s reverse; }
-.animate-float-blob-3 { animation: floatBlob 20s ease-in-out infinite 7s; }
-.animate-fade-up { animation: fadeSlideUp 0.7s cubic-bezier(0.16,1,0.3,1) both; }
-.animate-fade-in { animation: fadeIn 0.8s ease both; }
-.animate-scale-in { animation: scaleIn 0.6s cubic-bezier(0.16,1,0.3,1) both; }
-.animate-spin { animation: spin 1s linear infinite; }
+.animate-float-blob   { animation: floatBlob 10s ease-in-out infinite; }
+.animate-float-blob-2 { animation: floatBlob 14s ease-in-out infinite 2s reverse; }
+.animate-float-blob-3 { animation: floatBlob 18s ease-in-out infinite 6s; }
+.animate-fade-up      { animation: fadeSlideUp 0.7s cubic-bezier(0.16,1,0.3,1) both; }
+.animate-fade-in      { animation: fadeIn 0.8s ease both; }
+.animate-scale-in     { animation: scaleIn 0.6s cubic-bezier(0.16,1,0.3,1) both; }
+.animate-spin         { animation: spin 1s linear infinite; }
 
-/* ── Progress bars ─────────────────────────────────────── */
-.progress-track {
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(42,31,20,0.08);
-  overflow: hidden;
-}
+/* ─── PROGRESS BARS ────────────────────────────────────────────────────────── */
+.progress-track { height: 8px; border-radius: 999px; background: rgba(42,31,20,0.1); overflow: hidden; }
 .progress-fill {
-  height: 100%;
-  border-radius: 999px;
+  height: 100%; border-radius: 999px;
   background: linear-gradient(90deg, #D4A853 0%, #C9963E 100%);
   animation: progressFill 1.2s cubic-bezier(0.16,1,0.3,1) both;
 }
-.progress-fill-coral {
-  background: linear-gradient(90deg, #F4A6A0 0%, #E8927C 100%);
-}
-.progress-fill-sage {
-  background: linear-gradient(90deg, #A8D8C8 0%, #7FD8BE 100%);
-}
+.progress-fill-coral { background: linear-gradient(90deg, #F4A6A0 0%, #E8927C 100%); }
+.progress-fill-sage  { background: linear-gradient(90deg, #A8D8C8 0%, #7FD8BE 100%); }
 
-/* ── Divider ───────────────────────────────────────────── */
-.divider {
-  width: 40px;
-  height: 3px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #D4A853 0%, #C9963E 100%);
-}
+/* ─── DIVIDER ──────────────────────────────────────────────────────────────── */
+.divider { width: 40px; height: 3px; border-radius: 999px; background: linear-gradient(90deg, #D4A853 0%, #C9963E 100%); }
 
-/* ── Typing indicator ──────────────────────────────────── */
-.typing-dot {
-  display: inline-block;
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--gold);
-  animation: typingDot 1.2s ease-in-out infinite;
-}
+/* ─── TYPING DOTS ──────────────────────────────────────────────────────────── */
+.typing-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); animation: typingDot 1.2s ease-in-out infinite; }
 .typing-dot:nth-child(2) { animation-delay: 0.2s; }
 .typing-dot:nth-child(3) { animation-delay: 0.4s; }

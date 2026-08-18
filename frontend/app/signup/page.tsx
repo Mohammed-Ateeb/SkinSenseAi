@@ -25,20 +25,20 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden"
-      style={{ background: "linear-gradient(135deg, #FAF6F1 0%, #F5EFE6 50%, #FBF0E8 100%)" }}>
+      style={{ background: "linear-gradient(135deg, #EDD9C0 0%, #E8C9A0 40%, #F0D5C0 100%)" }}>
 
       {/* Blobs */}
       <div className="animate-float-blob absolute pointer-events-none" style={{
-        width: "500px", height: "500px", borderRadius: "50%", top: "-100px", left: "-80px",
-        background: "radial-gradient(circle, rgba(127,216,190,0.25) 0%, transparent 70%)", filter: "blur(60px)",
+        width: "600px", height: "600px", borderRadius: "50%", top: "-150px", left: "-100px",
+        background: "radial-gradient(circle, rgba(127,216,190,0.55) 0%, rgba(100,200,170,0.2) 50%, transparent 70%)", filter: "blur(70px)",
       }} />
       <div className="animate-float-blob-2 absolute pointer-events-none" style={{
-        width: "400px", height: "400px", borderRadius: "50%", bottom: "-80px", right: "-80px",
-        background: "radial-gradient(circle, rgba(212,168,83,0.28) 0%, transparent 70%)", filter: "blur(50px)",
+        width: "550px", height: "550px", borderRadius: "50%", bottom: "-100px", right: "-100px",
+        background: "radial-gradient(circle, rgba(212,168,83,0.6) 0%, rgba(201,150,62,0.25) 50%, transparent 70%)", filter: "blur(70px)",
       }} />
       <div className="animate-float-blob-3 absolute pointer-events-none" style={{
-        width: "350px", height: "350px", borderRadius: "50%", top: "30%", right: "15%",
-        background: "radial-gradient(circle, rgba(232,146,124,0.18) 0%, transparent 70%)", filter: "blur(45px)",
+        width: "400px", height: "400px", borderRadius: "50%", top: "30%", right: "10%",
+        background: "radial-gradient(circle, rgba(232,146,124,0.5) 0%, rgba(220,120,100,0.2) 50%, transparent 70%)", filter: "blur(55px)",
       }} />
 
       <div className="relative z-10 w-full max-w-md animate-scale-in">

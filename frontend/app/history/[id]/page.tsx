@@ -43,17 +43,17 @@ export default async function HistoryDetailPage({ params }: { params: { id: stri
   const products: Product[] = (analysis.recommended_products as Product[] | null) ?? [];
 
   return (
-    <div className="min-h-screen relative" style={{ background: "var(--cream)" }}>
+    <div className="min-h-screen relative" style={{ background: "linear-gradient(135deg, #EDD9C0 0%, #E8C9A0 40%, #F0D5C0 100%)" }}>
 
       {/* Blobs */}
       <div className="fixed inset-0 pointer-events-none" aria-hidden>
         <div className="animate-float-blob absolute" style={{
-          width: "400px", height: "400px", borderRadius: "50%", top: "-50px", right: "-50px",
-          background: "radial-gradient(circle, rgba(212,168,83,0.2) 0%, transparent 70%)", filter: "blur(50px)",
+          width: "600px", height: "600px", borderRadius: "50%", top: "-100px", right: "-100px",
+          background: "radial-gradient(circle, rgba(212,168,83,0.55) 0%, rgba(201,150,62,0.25) 50%, transparent 70%)", filter: "blur(70px)",
         }} />
         <div className="animate-float-blob-2 absolute" style={{
-          width: "300px", height: "300px", borderRadius: "50%", bottom: "10%", left: "-30px",
-          background: "radial-gradient(circle, rgba(232,146,124,0.15) 0%, transparent 70%)", filter: "blur(40px)",
+          width: "450px", height: "450px", borderRadius: "50%", bottom: "10%", left: "-60px",
+          background: "radial-gradient(circle, rgba(232,146,124,0.55) 0%, rgba(220,120,100,0.2) 50%, transparent 70%)", filter: "blur(60px)",
         }} />
       </div>
 

@@ -22,17 +22,17 @@ export default async function HistoryPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div className="min-h-screen relative" style={{ background: "var(--cream)" }}>
+    <div className="min-h-screen relative" style={{ background: "linear-gradient(135deg, #EDD9C0 0%, #E8C9A0 40%, #F0D5C0 100%)" }}>
 
       {/* Blobs */}
       <div className="fixed inset-0 pointer-events-none" aria-hidden>
         <div className="animate-float-blob absolute" style={{
-          width: "400px", height: "400px", borderRadius: "50%", top: "-50px", right: "-50px",
-          background: "radial-gradient(circle, rgba(212,168,83,0.2) 0%, transparent 70%)", filter: "blur(50px)",
+          width: "600px", height: "600px", borderRadius: "50%", top: "-100px", right: "-100px",
+          background: "radial-gradient(circle, rgba(212,168,83,0.55) 0%, rgba(201,150,62,0.25) 50%, transparent 70%)", filter: "blur(70px)",
         }} />
         <div className="animate-float-blob-2 absolute" style={{
-          width: "350px", height: "350px", borderRadius: "50%", bottom: "0", left: "-40px",
-          background: "radial-gradient(circle, rgba(127,216,190,0.15) 0%, transparent 70%)", filter: "blur(45px)",
+          width: "500px", height: "500px", borderRadius: "50%", bottom: "-60px", left: "-60px",
+          background: "radial-gradient(circle, rgba(127,216,190,0.5) 0%, rgba(100,200,170,0.2) 50%, transparent 70%)", filter: "blur(65px)",
         }} />
       </div>
 

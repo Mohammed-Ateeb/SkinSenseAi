@@ -1,9 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// Add every route that should require login here
-const PROTECTED_ROUTES = ['/dashboard', '/analyze', '/history', '/chat']
-
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } })
 
@@ -12,6 +9,10 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
+        // v0.3.0: getItem only calls cookies.get
+        get(name: string) {
+          return request.cookies.get(name)?.value
+        },
         getAll() {
           return request.cookies.getAll()
         },
@@ -28,18 +29,8 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  const isProtected = PROTECTED_ROUTES.some((path) =>
-    request.nextUrl.pathname.startsWith(path)
-  )
-
-  if (isProtected && !user) {
-    const redirectUrl = new URL('/login', request.url)
-    return NextResponse.redirect(redirectUrl)
-  }
+  // Refresh session cookies — individual pages redirect if user is missing
+  await supabase.auth.getUser()
 
   return response
 }

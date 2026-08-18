@@ -18,10 +18,36 @@ from app.privacy.ephemeral_image_lifecycle import EphemeralImageLifecycle
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/analyze", tags=["analyze"])
 
+# MediaPipe FaceMesh zone definitions (subset of 468 landmarks per zone)
+_ZONE_INDICES: dict[str, list[int]] = {
+    "forehead":   [10, 151, 107, 66, 105, 63, 70, 156, 124, 122, 119, 117, 123, 147, 213, 138, 127, 34, 21, 71, 68, 104, 109],
+    "nose":       [4, 5, 1, 2, 3, 195, 197, 6, 19, 20, 94, 125, 354],
+    "leftCheek":  [50, 205, 206, 207, 187, 147, 123, 116, 111, 101],
+    "rightCheek": [280, 425, 426, 427, 411, 376, 352, 345, 340, 330],
+    "chin":       [18, 200, 199, 175, 152, 148, 176, 149, 150, 136],
+    "perioral":   [0, 267, 269, 270, 409, 291, 375, 321, 405, 314, 17, 84, 181, 91, 146, 61],
+}
+
+def _zone_bboxes(landmarks: list[dict]) -> dict:
+    """Convert 468 normalized MediaPipe landmarks to per-zone bounding boxes."""
+    result = {}
+    for zone, indices in _ZONE_INDICES.items():
+        pts = [landmarks[i] for i in indices if i < len(landmarks)]
+        if not pts:
+            continue
+        xs = [p["x"] for p in pts]
+        ys = [p["y"] for p in pts]
+        result[zone] = {
+            "bbox": {"x": min(xs), "y": min(ys), "w": max(xs) - min(xs), "h": max(ys) - min(ys)}
+        }
+    return result
+
 class AnalyzeRequest(BaseModel):
     image_id: str
     fitzpatrick_skin_tone: int | None = None
     additional_context: str = ""
+    # Phase 1 Digital Twin: optional MediaPipe FaceMesh landmarks from browser webcam scan
+    landmarks: list[dict] | None = None      # [{x, y, z}] * 468 normalized coords
 
 class DifferentialDiagnosis(BaseModel):
     condition: str
@@ -90,6 +116,15 @@ async def analyze(body: AnalyzeRequest, user: CurrentUser = Depends(get_current_
 
     recommended_ids = [str(p.product_id) for p in rag_context.products[:3] if p.product_id]
 
+    # Build face_geometry from browser landmarks if provided
+    face_geometry = None
+    if body.landmarks:
+        from datetime import datetime, timezone
+        face_geometry = {
+            "landmarks": body.landmarks,
+            "captured_at": datetime.now(timezone.utc).isoformat(),
+        }
+
     ar_result = supabase.table("analysis_results").insert({
         "image_id": body.image_id,
         "user_id": user.id,
@@ -99,6 +134,7 @@ async def analyze(body: AnalyzeRequest, user: CurrentUser = Depends(get_current_
         "confidence_score": predict_result.confidence_score,
         "llm_explanation": validation_result.cleaned_text,
         "recommended_product_ids": recommended_ids,
+        "zone_results": _zone_bboxes(body.landmarks) if body.landmarks else None,
     }).execute()
 
     if not ar_result.data:
@@ -121,6 +157,7 @@ async def analyze(body: AnalyzeRequest, user: CurrentUser = Depends(get_current_
             primary_condition=predict_result.primary_condition,
             confidence_threshold_met=predict_result.confidence_threshold_met,
             low_confidence_flag=predict_result.low_confidence_flag,
+            face_geometry=face_geometry,
         )
         twin_state = update_twin(
             db=supabase,

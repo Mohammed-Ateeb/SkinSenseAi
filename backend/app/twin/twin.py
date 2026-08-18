@@ -72,6 +72,9 @@ class PredictResult:
     primary_condition: str
     confidence_threshold_met: bool = True
     low_confidence_flag: bool = False
+    # Phase 1 Digital Twin: MediaPipe FaceMesh data from browser
+    face_geometry: Optional[dict] = None    # {landmarks: [{x,y,z}x468], captured_at: ISO8601}
+    zone_conditions: Optional[dict] = None  # {zone: {condition, confidence, bbox}}
 
 
 @dataclass
@@ -112,7 +115,10 @@ class TwinState:
     created_at: str
     snapshot_id: str
     deltas: TwinDeltas
-    low_confidence: bool = False   # True → frontend should prompt user to re-upload
+    low_confidence: bool = False           # True → frontend should prompt user to re-upload
+    # Phase 1 Digital Twin: 3D face geometry stored per twin
+    face_geometry: Optional[dict] = None   # latest FaceMesh capture
+    zone_conditions: Optional[dict] = None # latest per-zone analysis
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -314,6 +320,10 @@ def update_twin(
         flare_changes     = flare_changes,
     )
 
+    # Phase 1: use the latest face_geometry/zone_conditions if provided, else keep existing
+    new_face_geometry   = predict_result.face_geometry   or (existing.get("face_geometry")   if existing else None)
+    new_zone_conditions = predict_result.zone_conditions or (existing.get("zone_conditions") if existing else None)
+
     # ── 4. Insert snapshot ───────────────────────────────────────────────────
     snapshot_id = str(uuid.uuid4())
     db.table("skin_twin_snapshots").insert({
@@ -333,6 +343,8 @@ def update_twin(
         },
         "trigger":               "scan" if not chat_feedback else "chat_feedback",
         "chat_feedback_summary": fb.raw_text or None,
+        "face_geometry":         new_face_geometry,
+        "zone_conditions":       new_zone_conditions,
         "created_at":            now,
     }).execute()
 
@@ -349,6 +361,8 @@ def update_twin(
         "last_scan_at":          now,
         "last_updated_at":       now,
         "created_at":            twin_created_at,
+        "face_geometry":         new_face_geometry,
+        "zone_conditions":       new_zone_conditions,
     }, on_conflict="user_id").execute()
 
     return TwinState(
@@ -366,4 +380,6 @@ def update_twin(
         snapshot_id           = snapshot_id,
         deltas                = deltas,
         low_confidence        = False,
+        face_geometry         = new_face_geometry,
+        zone_conditions       = new_zone_conditions,
     )
