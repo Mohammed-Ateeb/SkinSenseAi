@@ -22,6 +22,10 @@ const NAV = [
     href: "/history", label: "History",
     icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 4v5l3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /><circle cx="9" cy="9" r="7" stroke="currentColor" strokeWidth="1.4" /></svg>,
   },
+  {
+    href: "/twin", label: "3D Twin",
+    icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2L16 6v6L9 16 2 12V6L9 2z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" /><path d="M9 2v14M2 6l7 4 7-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>,
+  },
 ];
 
 const STORAGE_KEY = "skinsense-sidebar-collapsed";
