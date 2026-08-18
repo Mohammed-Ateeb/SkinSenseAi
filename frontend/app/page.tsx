@@ -93,8 +93,9 @@ export default function LandingPage() {
       {/* Nav */}
       <nav className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-6 md:px-12 h-16"
         style={{ background: "rgba(250,246,241,0.85)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.6)" }}>
-        <span className="font-display text-lg" style={{ color: "var(--text)" }}>
-          SKIN<span style={{ color: "var(--gold)" }}>SENSE</span>
+        <span className="flex items-center gap-2 font-display text-lg" style={{ color: "var(--text)" }}>
+          <img src="/skinsenseai-icon.png" alt="SkinSense AI" width={28} height={28} className="rounded-lg" />
+          <span>SKIN<span style={{ color: "var(--gold)" }}>SENSE</span></span>
         </span>
         <div className="hidden md:flex items-center gap-8 text-sm font-medium" style={{ color: "var(--text-mute)" }}>
           <a href="#features" className="hover:text-[#C9963E] transition-colors">Features</a>

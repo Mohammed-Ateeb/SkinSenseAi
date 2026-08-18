@@ -70,22 +70,31 @@ export default function AppSidebar() {
   const railContent = (
     <>
       {/* Brand + collapse toggle */}
-      <div className="flex items-center justify-between px-4 py-6" style={{ borderBottom: "1px solid rgba(42,31,20,0.07)" }}>
-        {!collapsed && (
-          <Link href="/dashboard" className="font-display text-base" style={{ color: "var(--text)" }}>
-            SKIN<span style={{ color: "var(--gold)" }}>SENSE</span>
-          </Link>
+      <div className={`flex items-center px-4 py-6 ${collapsed ? "justify-center" : "justify-between"}`} style={{ borderBottom: "1px solid rgba(42,31,20,0.07)" }}>
+        {!collapsed ? (
+          <>
+            <Link href="/dashboard" className="flex items-center gap-2 font-display text-base" style={{ color: "var(--text)" }}>
+              <img src="/skinsenseai-icon.png" alt="" width={24} height={24} className="rounded-md" />
+              <span>SKIN<span style={{ color: "var(--gold)" }}>SENSE</span></span>
+            </Link>
+            <button
+              onClick={toggleCollapsed}
+              aria-label="Collapse sidebar"
+              className="w-8 h-8 rounded-lg flex items-center justify-center btn-glass flex-shrink-0"
+              style={{ color: "var(--text-dim)" }}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={toggleCollapsed}
+            aria-label="Expand sidebar"
+            className="flex items-center justify-center">
+            <img src="/skinsenseai-icon.png" alt="SkinSense" width={30} height={30} className="rounded-md" />
+          </button>
         )}
-        <button
-          onClick={toggleCollapsed}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="w-8 h-8 rounded-lg flex items-center justify-center btn-glass flex-shrink-0"
-          style={{ color: "var(--text-dim)" }}>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"
-            style={{ transform: collapsed ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>
-            <path d="M9 11L5 7l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
       </div>
 
       {/* Nav */}
@@ -142,8 +151,9 @@ export default function AppSidebar() {
           className="w-9 h-9 rounded-lg flex items-center justify-center btn-glass" style={{ color: "var(--text-dim)" }}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
         </button>
-        <Link href="/dashboard" className="font-display text-base" style={{ color: "var(--text)" }}>
-          SKIN<span style={{ color: "var(--gold)" }}>SENSE</span>
+        <Link href="/dashboard" className="flex items-center gap-2 font-display text-base" style={{ color: "var(--text)" }}>
+          <img src="/skinsenseai-icon.png" alt="" width={22} height={22} className="rounded-md" />
+          <span>SKIN<span style={{ color: "var(--gold)" }}>SENSE</span></span>
         </Link>
         <Link href="/analyze" className="btn-gold text-xs font-semibold px-4 py-2">+ Analyze</Link>
       </div>
