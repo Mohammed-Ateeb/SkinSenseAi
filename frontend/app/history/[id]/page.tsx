@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import AppSidebar from "@/components/AppSidebar";
 
 function toTitleCase(s: string): string {
   return s.replace(/[_-]+/g, " ").replace(/\b\w/g, c => c.toUpperCase());
@@ -43,35 +44,23 @@ export default async function HistoryDetailPage({ params }: { params: { id: stri
   const products: Product[] = (analysis.recommended_products as Product[] | null) ?? [];
 
   return (
-    <div className="min-h-screen relative" style={{ background: "linear-gradient(135deg, #EDD9C0 0%, #E8C9A0 40%, #F0D5C0 100%)" }}>
+    <div className="flex h-screen overflow-hidden" style={{ background: "linear-gradient(135deg, #EDD9C0 0%, #E8C9A0 40%, #F0D5C0 100%)" }}>
+      <AppSidebar />
 
-      {/* Blobs */}
-      <div className="fixed inset-0 pointer-events-none" aria-hidden>
-        <div className="animate-float-blob absolute" style={{
-          width: "600px", height: "600px", borderRadius: "50%", top: "-100px", right: "-100px",
-          background: "radial-gradient(circle, rgba(212,168,83,0.55) 0%, rgba(201,150,62,0.25) 50%, transparent 70%)", filter: "blur(70px)",
-        }} />
-        <div className="animate-float-blob-2 absolute" style={{
-          width: "450px", height: "450px", borderRadius: "50%", bottom: "10%", left: "-60px",
-          background: "radial-gradient(circle, rgba(232,146,124,0.55) 0%, rgba(220,120,100,0.2) 50%, transparent 70%)", filter: "blur(60px)",
-        }} />
-      </div>
+      <main className="flex-1 overflow-y-auto relative">
+        {/* Blobs */}
+        <div className="fixed inset-0 pointer-events-none" aria-hidden>
+          <div className="animate-float-blob absolute" style={{
+            width: "600px", height: "600px", borderRadius: "50%", top: "-100px", right: "-100px",
+            background: "radial-gradient(circle, rgba(212,168,83,0.55) 0%, rgba(201,150,62,0.25) 50%, transparent 70%)", filter: "blur(70px)",
+          }} />
+          <div className="animate-float-blob-2 absolute" style={{
+            width: "450px", height: "450px", borderRadius: "50%", bottom: "10%", left: "-60px",
+            background: "radial-gradient(circle, rgba(232,146,124,0.55) 0%, rgba(220,120,100,0.2) 50%, transparent 70%)", filter: "blur(60px)",
+          }} />
+        </div>
 
-      {/* Nav */}
-      <nav className="relative z-20 flex items-center justify-between px-6 md:px-10 h-14"
-        style={{ background: "rgba(250,246,241,0.85)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.7)" }}>
-        <Link href="/dashboard" className="font-display text-base" style={{ color: "var(--text)" }}>
-          SKIN<span style={{ color: "var(--gold)" }}>SENSE</span>
-        </Link>
-        <Link href="/history" className="text-sm flex items-center gap-1.5" style={{ color: "var(--text-mute)" }}>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M9 11L5 7l4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          All analyses
-        </Link>
-      </nav>
-
-      <div className="relative z-10 max-w-lg mx-auto px-6 py-12 animate-fade-up">
+        <div className="relative z-10 max-w-lg mx-auto px-6 py-12 animate-fade-up">
         <div className="mb-8">
           <div className="text-xs font-medium tracking-wider uppercase mb-1" style={{ color: "var(--text-mute)" }}>
             {formatDate(analysis.created_at)}
@@ -181,7 +170,8 @@ export default async function HistoryDetailPage({ params }: { params: { id: stri
         <p className="text-xs text-center mt-6 pb-4" style={{ color: "var(--text-mute)" }}>
           Not medical advice. Consult a licensed dermatologist for any skin concerns.
         </p>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

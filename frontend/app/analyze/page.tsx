@@ -1,9 +1,14 @@
 'use client';
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import AppShell from "@/components/AppShell";
+
+// Guided reveal stages after analysis completes
+type ResultStage = "diagnosis" | "products" | "chat";
 
 interface FaceLandmark { x: number; y: number; z: number; }
 interface ConditionScore { condition: string; confidence: number; }
@@ -69,6 +74,7 @@ function drawZoneBoxes(ctx: CanvasRenderingContext2D, landmarks: FaceLandmark[],
 }
 
 export default function AnalyzePage() {
+  const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
 
   // shared state
@@ -77,6 +83,8 @@ export default function AnalyzePage() {
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [globalStep, setGlobalStep] = useState<"idle" | "uploading" | "analyzing" | "results">("idle");
+  const [stage, setStage] = useState<ResultStage>("diagnosis");
+  const goToChat = () => { if (result) router.push(`/chat?about=${encodeURIComponent(result.primary_condition)}`); };
 
   // upload mode
   const [file, setFile] = useState<File | null>(null);
@@ -103,7 +111,6 @@ export default function AnalyzePage() {
 
   useGSAP(() => {
     gsap.from(".analyze-main", { y: 40, opacity: 0, duration: 0.8, ease: "power3.out", delay: 0.1 });
-    gsap.from(".analyze-nav",  { y: -20, opacity: 0, duration: 0.6, ease: "power2.out" });
   }, { scope: containerRef });
 
   // Init MediaPipe + camera when entering webcam mode
@@ -236,10 +243,13 @@ export default function AnalyzePage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ filename: "face_scan.jpg", content_type: "image/jpeg" }),
       });
-      if (!uploadRes.ok) throw new Error("Upload URL request failed");
-      const { image_id, upload_url } = await uploadRes.json();
+      if (!uploadRes.ok) throw new Error("Couldn't prepare the upload. Please try again.");
+      const { image_id, storage_path, token: uploadToken } = await uploadRes.json();
 
-      await fetch(upload_url, { method: "PUT", body: blob, headers: { "Content-Type": "image/jpeg" } });
+      const { error: uploadErr } = await supabase.storage
+        .from("skin-images")
+        .uploadToSignedUrl(storage_path, uploadToken, blob, { contentType: "image/jpeg" });
+      if (uploadErr) throw new Error("Image upload failed. Please try again.");
 
       setGlobalStep("analyzing");
       const analyzeRes = await fetch(`${apiUrl}/analyze`, {
@@ -249,6 +259,7 @@ export default function AnalyzePage() {
       });
       if (!analyzeRes.ok) throw new Error("Analysis failed");
       setResult(await analyzeRes.json());
+      setStage("diagnosis");
       setGlobalStep("results");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -286,10 +297,13 @@ export default function AnalyzePage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ filename: file.name, content_type: file.type }),
       });
-      if (!uploadRes.ok) throw new Error("Upload URL request failed");
-      const { image_id, upload_url } = await uploadRes.json();
+      if (!uploadRes.ok) throw new Error("Couldn't prepare the upload. Please try again.");
+      const { image_id, storage_path, token: uploadToken } = await uploadRes.json();
 
-      await fetch(upload_url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      const { error: uploadErr } = await supabase.storage
+        .from("skin-images")
+        .uploadToSignedUrl(storage_path, uploadToken, file, { contentType: file.type });
+      if (uploadErr) throw new Error("Image upload failed. Please try again.");
 
       setGlobalStep("analyzing");
       const analyzeRes = await fetch(`${apiUrl}/analyze`, {
@@ -299,6 +313,7 @@ export default function AnalyzePage() {
       });
       if (!analyzeRes.ok) throw new Error("Analysis failed");
       setResult(await analyzeRes.json());
+      setStage("diagnosis");
       setGlobalStep("results");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -308,6 +323,7 @@ export default function AnalyzePage() {
 
   const reset = () => {
     setGlobalStep("idle");
+    setStage("diagnosis");
     setFile(null);
     setPreview(null);
     setFitzpatrick(null);
@@ -322,41 +338,11 @@ export default function AnalyzePage() {
   const isProcessing = globalStep === "uploading" || globalStep === "analyzing";
 
   return (
-    <div ref={containerRef} className="min-h-screen relative overflow-x-hidden"
-      style={{ background: "linear-gradient(135deg, #EDD9C0 0%, #E8C9A0 40%, #F0D5C0 100%)" }}>
-
+    <AppShell>
       {/* Hidden canvas for frame capture (never displayed) */}
       <canvas ref={captureRef} className="sr-only" aria-hidden />
 
-      {/* Blobs */}
-      <div className="fixed inset-0 pointer-events-none" aria-hidden>
-        <div className="animate-float-blob absolute" style={{
-          width: "650px", height: "650px", borderRadius: "50%", top: "-120px", right: "-100px",
-          background: "radial-gradient(circle, rgba(212,168,83,0.6) 0%, rgba(201,150,62,0.25) 50%, transparent 70%)",
-          filter: "blur(75px)",
-        }} />
-        <div className="animate-float-blob-2 absolute" style={{
-          width: "550px", height: "550px", borderRadius: "50%", bottom: "-60px", left: "-80px",
-          background: "radial-gradient(circle, rgba(232,146,124,0.55) 0%, rgba(220,120,100,0.2) 50%, transparent 70%)",
-          filter: "blur(65px)",
-        }} />
-      </div>
-
-      {/* Nav */}
-      <nav className="analyze-nav relative z-20 flex items-center justify-between px-6 md:px-10 h-14"
-        style={{ background: "rgba(250,246,241,0.85)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.7)" }}>
-        <Link href="/dashboard" className="font-display text-base" style={{ color: "var(--text)" }}>
-          SKIN<span style={{ color: "var(--gold)" }}>SENSE</span>
-        </Link>
-        <Link href="/dashboard" className="flex items-center gap-1.5 text-sm" style={{ color: "var(--text-mute)" }}>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M9 11L5 7l4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Dashboard
-        </Link>
-      </nav>
-
-      <div className="relative z-10 max-w-lg mx-auto px-6 py-12">
+      <div ref={containerRef} className="relative z-10 max-w-lg mx-auto px-6 py-12">
         <div className="analyze-main">
 
           {/* ── Results ────────────────────────────────────────────────────── */}
@@ -413,16 +399,24 @@ export default function AnalyzePage() {
 
               {result.llm_explanation && (
                 <div className="glass-card p-6 mb-4">
-                  <div className="text-xs font-medium uppercase tracking-wider mb-4" style={{ color: "var(--text-mute)" }}>AI Analysis</div>
+                  <div className="text-xs font-medium uppercase tracking-wider mb-4" style={{ color: "var(--text-mute)" }}>Your Skin Report</div>
                   <div className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--text-dim)", fontWeight: 300 }}>
                     {result.llm_explanation}
                   </div>
                 </div>
               )}
 
-              {result.recommended_products.length > 0 && (
-                <div className="glass-card p-5 mb-6">
-                  <div className="text-xs font-medium uppercase tracking-wider mb-4" style={{ color: "var(--text-mute)" }}>Recommended OTC Products</div>
+              {stage === "diagnosis" && (
+                <button onClick={() => setStage("products")}
+                  className="btn-gold w-full py-4 text-sm font-semibold mt-2 mb-6 flex items-center justify-center gap-2">
+                  See recommended products
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </button>
+              )}
+
+              {stage !== "diagnosis" && result.recommended_products.length > 0 && (
+                <div className="glass-card p-5 mb-4 animate-fade-up">
+                  <div className="text-xs font-medium uppercase tracking-wider mb-4" style={{ color: "var(--text-mute)" }}>Recommended Products</div>
                   <div className="space-y-3">
                     {result.recommended_products.slice(0, 4).map((p, i) => (
                       <div key={i} className="flex items-start gap-3 py-3"
@@ -447,6 +441,31 @@ export default function AnalyzePage() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {stage === "products" && (
+                <button onClick={() => setStage("chat")}
+                  className="btn-gold w-full py-4 text-sm font-semibold mt-2 mb-6 flex items-center justify-center gap-2">
+                  Ask about your results
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </button>
+              )}
+
+              {stage === "chat" && (
+                <div className="glass-card p-6 mb-6 text-center animate-fade-up">
+                  <div className="w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: "rgba(201,150,62,0.1)" }}>
+                    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                      <path d="M19 13.5a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h12a2 2 0 012 2z" stroke="#C9963E" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <div className="font-display text-xl mb-2" style={{ color: "var(--text)" }}>HAVE QUESTIONS?</div>
+                  <p className="text-sm mb-5 leading-relaxed" style={{ color: "var(--text-dim)", fontWeight: 300 }}>
+                    Chat with your Skin Assistant about your {result.primary_condition.replace(/_/g, " ")} results, routine, and next steps.
+                  </p>
+                  <button onClick={goToChat} className="btn-gold w-full py-3.5 text-sm font-semibold">
+                    Start a conversation
+                  </button>
                 </div>
               )}
 
@@ -674,6 +693,6 @@ export default function AnalyzePage() {
           )}
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 }

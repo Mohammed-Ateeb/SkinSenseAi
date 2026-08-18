@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import AppSidebar from "@/components/AppSidebar";
 
 function toTitleCase(s: string): string {
   return s.replace(/[_-]+/g, " ").replace(/\b\w/g, c => c.toUpperCase());
@@ -22,33 +23,23 @@ export default async function HistoryPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div className="min-h-screen relative" style={{ background: "linear-gradient(135deg, #EDD9C0 0%, #E8C9A0 40%, #F0D5C0 100%)" }}>
+    <div className="flex h-screen overflow-hidden" style={{ background: "linear-gradient(135deg, #EDD9C0 0%, #E8C9A0 40%, #F0D5C0 100%)" }}>
+      <AppSidebar />
 
-      {/* Blobs */}
-      <div className="fixed inset-0 pointer-events-none" aria-hidden>
-        <div className="animate-float-blob absolute" style={{
-          width: "600px", height: "600px", borderRadius: "50%", top: "-100px", right: "-100px",
-          background: "radial-gradient(circle, rgba(212,168,83,0.55) 0%, rgba(201,150,62,0.25) 50%, transparent 70%)", filter: "blur(70px)",
-        }} />
-        <div className="animate-float-blob-2 absolute" style={{
-          width: "500px", height: "500px", borderRadius: "50%", bottom: "-60px", left: "-60px",
-          background: "radial-gradient(circle, rgba(127,216,190,0.5) 0%, rgba(100,200,170,0.2) 50%, transparent 70%)", filter: "blur(65px)",
-        }} />
-      </div>
-
-      {/* Nav */}
-      <nav className="relative z-20 flex items-center justify-between px-6 md:px-10 h-14"
-        style={{ background: "rgba(250,246,241,0.85)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.7)" }}>
-        <Link href="/dashboard" className="font-display text-base" style={{ color: "var(--text)" }}>
-          SKIN<span style={{ color: "var(--gold)" }}>SENSE</span>
-        </Link>
-        <div className="flex items-center gap-4">
-          <Link href="/analyze" className="btn-gold text-xs px-4 py-2">New Analysis</Link>
-          <Link href="/dashboard" className="text-sm" style={{ color: "var(--text-mute)" }}>← Dashboard</Link>
+      <main className="flex-1 overflow-y-auto relative">
+        {/* Blobs */}
+        <div className="fixed inset-0 pointer-events-none" aria-hidden>
+          <div className="animate-float-blob absolute" style={{
+            width: "600px", height: "600px", borderRadius: "50%", top: "-100px", right: "-100px",
+            background: "radial-gradient(circle, rgba(212,168,83,0.55) 0%, rgba(201,150,62,0.25) 50%, transparent 70%)", filter: "blur(70px)",
+          }} />
+          <div className="animate-float-blob-2 absolute" style={{
+            width: "500px", height: "500px", borderRadius: "50%", bottom: "-60px", left: "-60px",
+            background: "radial-gradient(circle, rgba(127,216,190,0.5) 0%, rgba(100,200,170,0.2) 50%, transparent 70%)", filter: "blur(65px)",
+          }} />
         </div>
-      </nav>
 
-      <div className="relative z-10 max-w-2xl mx-auto px-6 py-12">
+        <div className="relative z-10 max-w-2xl mx-auto px-6 py-12">
         <div className="mb-10">
           <div className="divider mb-4" />
           <h1 className="font-display text-[2.5rem]" style={{ color: "var(--text)" }}>ANALYSIS HISTORY</h1>
@@ -113,7 +104,8 @@ export default async function HistoryPage() {
             ))}
           </div>
         )}
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

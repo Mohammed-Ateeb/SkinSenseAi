@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef, useEffect, FormEvent } from 'react';
-import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
+import AppSidebar from '@/components/AppSidebar';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -63,45 +63,39 @@ export default function ChatPage() {
   const handleSubmit = (e: FormEvent) => { e.preventDefault(); send(input); };
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden" style={{ background: "linear-gradient(135deg, #EDD9C0 0%, #E8C9A0 40%, #F0D5C0 100%)" }}>
+    <div className="flex h-screen overflow-hidden" style={{ background: "linear-gradient(135deg, #EDD9C0 0%, #E8C9A0 40%, #F0D5C0 100%)" }}>
+      <AppSidebar />
 
-      {/* Background blobs */}
-      <div className="fixed inset-0 pointer-events-none" aria-hidden>
-        <div className="animate-float-blob absolute" style={{
-          width: "600px", height: "600px", borderRadius: "50%", top: "-100px", right: "-80px",
-          background: "radial-gradient(circle, rgba(212,168,83,0.55) 0%, rgba(201,150,62,0.25) 50%, transparent 70%)", filter: "blur(70px)",
-        }} />
-        <div className="animate-float-blob-2 absolute" style={{
-          width: "500px", height: "500px", borderRadius: "50%", bottom: "-60px", left: "-70px",
-          background: "radial-gradient(circle, rgba(232,146,124,0.5) 0%, rgba(220,120,100,0.2) 50%, transparent 70%)", filter: "blur(65px)",
-        }} />
-      </div>
+      <div className="flex flex-col flex-1 overflow-hidden relative">
+        {/* Background blobs */}
+        <div className="fixed inset-0 pointer-events-none" aria-hidden>
+          <div className="animate-float-blob absolute" style={{
+            width: "600px", height: "600px", borderRadius: "50%", top: "-100px", right: "-80px",
+            background: "radial-gradient(circle, rgba(212,168,83,0.55) 0%, rgba(201,150,62,0.25) 50%, transparent 70%)", filter: "blur(70px)",
+          }} />
+          <div className="animate-float-blob-2 absolute" style={{
+            width: "500px", height: "500px", borderRadius: "50%", bottom: "-60px", left: "-70px",
+            background: "radial-gradient(circle, rgba(232,146,124,0.5) 0%, rgba(220,120,100,0.2) 50%, transparent 70%)", filter: "blur(65px)",
+          }} />
+        </div>
 
-      {/* Header */}
-      <header className="relative z-10 flex items-center justify-between px-6 py-4 flex-shrink-0"
-        style={{ background: "rgba(250,246,241,0.85)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.7)" }}>
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard"
-            className="w-9 h-9 rounded-full flex items-center justify-center btn-glass text-[var(--text-dim)]">
+        {/* Chat title bar */}
+        <div className="relative z-10 flex items-center gap-3 px-6 py-4 flex-shrink-0"
+          style={{ background: "rgba(250,246,241,0.85)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.7)" }}>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: "rgba(201,150,62,0.1)" }}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M9 11L5 7l4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M13 9a2 2 0 01-2 2H4L1 14V3a2 2 0 012-2h8a2 2 0 012 2z" stroke="#C9963E" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </Link>
+          </div>
           <div>
             <div className="font-semibold text-sm" style={{ color: "var(--text)" }}>Skin Assistant</div>
-            <div className="text-xs" style={{ color: "var(--text-mute)" }}>Powered by Llama 3.3</div>
+            <div className="text-xs" style={{ color: "var(--text-mute)" }}>Clinical skin guidance, personalised to you</div>
           </div>
         </div>
-        <Link href="/" className="font-display text-base" style={{ color: "var(--text)" }}>
-          SKIN<span style={{ color: "var(--gold)" }}>SENSE</span>
-        </Link>
-        <Link href="/history" className="text-xs font-medium px-3 py-1.5 rounded-lg btn-glass" style={{ color: "var(--text-dim)" }}>
-          History
-        </Link>
-      </header>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 relative z-10">
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-4 py-6 relative z-10">
         <div className="max-w-2xl mx-auto space-y-4">
           {messages.length === 0 && (
             <div className="text-center py-16 animate-fade-up">
@@ -184,6 +178,8 @@ export default function ChatPage() {
           </button>
         </form>
       </div>
+
+      </div>  {/* inner flex-col wrapper */}
     </div>
   );
 }
