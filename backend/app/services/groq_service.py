@@ -3,6 +3,11 @@ from groq import Groq
 from app.ml.inference import PredictionResult
 from app.rag.retriever import RetrievedContext
 
+# Groq chat model. Overridable via GROQ_MODEL. Default is a model this
+# account has access to (Llama models return model_not_found on this key,
+# and the older llama3/gemma ids are decommissioned).
+GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+
 _client: Groq | None = None
 
 def get_groq_client() -> Groq:
@@ -82,7 +87,7 @@ Please provide personalized skincare guidance based on these findings."""
     system_prompt = build_system_prompt(rag_context)
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model=GROQ_MODEL,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message},
@@ -108,7 +113,7 @@ def generate_chat_response(
     messages.append({"role": "user", "content": user_message})
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model=GROQ_MODEL,
         messages=messages,
         temperature=0.4,
         max_tokens=500,

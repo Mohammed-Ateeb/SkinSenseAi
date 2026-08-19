@@ -11,33 +11,40 @@ from app.guardrail.guardrail import validate
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 class ChatRequest(BaseModel):
-    analysis_id: str
     message: str
+    # Both optional: the general chat page has neither; the "Ask about your
+    # results" hand-off passes a condition; analysis-scoped chat passes an id.
+    analysis_id: str | None = None
+    condition: str | None = None
     chat_history: list[dict] = []
 
 @router.post("")
 async def chat(body: ChatRequest, user: CurrentUser = Depends(get_current_user)):
     supabase = get_supabase()
 
-    result = supabase.table("analysis_results").select(
-        "id, primary_condition, llm_explanation"
-    ).eq("id", body.analysis_id).eq("user_id", user.id).single().execute()
+    condition = (body.condition or "general").strip() or "general"
 
-    if not result.data:
-        raise HTTPException(status_code=404, detail="Analysis not found")
+    # If an analysis id is supplied, use its condition — but never hard-fail
+    # general chat when it's missing or not found.
+    if body.analysis_id:
+        result = supabase.table("analysis_results").select(
+            "id, primary_condition, llm_explanation"
+        ).eq("id", body.analysis_id).eq("user_id", user.id).maybe_single().execute()
+        if result and result.data and result.data.get("primary_condition"):
+            condition = result.data["primary_condition"]
 
-    analysis = result.data
     # retrieve() is synchronous — no await
-    rag_context = RagRetriever(supabase).retrieve(
-        analysis["primary_condition"] or "general", ""
-    )
+    rag_context = RagRetriever(supabase).retrieve(condition, "")
 
-    response_text = groq_service.generate_chat_response(
-        primary_condition=analysis["primary_condition"] or "general",
-        rag_context=rag_context,
-        chat_history=body.chat_history,
-        user_message=body.message,
-    )
+    try:
+        response_text = groq_service.generate_chat_response(
+            primary_condition=condition,
+            rag_context=rag_context,
+            chat_history=body.chat_history,
+            user_message=body.message,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Chat model error: {e}")
 
     # validate() uses keyword-only arg product_names (after *)
     validation = validate(

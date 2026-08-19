@@ -26,6 +26,10 @@ const NAV = [
     href: "/twin", label: "3D Twin",
     icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2L16 6v6L9 16 2 12V6L9 2z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" /><path d="M9 2v14M2 6l7 4 7-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>,
   },
+  {
+    href: "/derm", label: "Clinician",
+    icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2v5M9 7c0 2.2-1.8 4-4 4a3 3 0 106 0 3 3 0 106 0c-2.2 0-4-1.8-4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/><circle cx="9" cy="15" r="1.5" stroke="currentColor" strokeWidth="1.4"/></svg>,
+  },
 ];
 
 const STORAGE_KEY = "skinsense-sidebar-collapsed";

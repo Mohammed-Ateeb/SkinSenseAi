@@ -63,6 +63,7 @@ class AnalyzeResponse(BaseModel):
     twin_state: dict
     guardrail_flags: list[dict]
     low_confidence: bool
+    gradcam: str | None = None  # base64 PNG data URI (Grad-CAM heatmap)
 
 @router.post("", response_model=AnalyzeResponse)
 async def analyze(body: AnalyzeRequest, user: CurrentUser = Depends(get_current_user)):
@@ -85,6 +86,9 @@ async def analyze(body: AnalyzeRequest, user: CurrentUser = Depends(get_current_
     # 3. ML inference
     engine = InferenceEngine.from_env()
     predict_result = engine.predict(image_bytes)
+
+    # Grad-CAM heatmap for the predicted class (best-effort; never blocks analysis)
+    gradcam_overlay = engine.explain(image_bytes, predict_result.primary_condition)
 
     # 4. RAG retrieval (synchronous — no await)
     retriever = RagRetriever(supabase)
@@ -220,4 +224,5 @@ async def analyze(body: AnalyzeRequest, user: CurrentUser = Depends(get_current_
         twin_state=twin_state_dict,
         guardrail_flags=guardrail_payload,
         low_confidence=predict_result.low_confidence_flag,
+        gradcam=gradcam_overlay,
     )

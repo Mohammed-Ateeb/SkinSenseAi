@@ -49,9 +49,16 @@ class TemperatureScaler(nn.Module):
         return logits / self.temperature
 
 
-def _build_efficientnet_b0(num_classes: int = len(CLASS_NAMES)) -> nn.Module:
-    """Return EfficientNet-B0 with a fresh classification head for num_classes."""
-    backbone = models.efficientnet_b0(weights=None)
+def _build_efficientnet_b0(
+    num_classes: int = len(CLASS_NAMES), pretrained: bool = False
+) -> nn.Module:
+    """Return EfficientNet-B0 with a fresh classification head for num_classes.
+
+    pretrained=True loads ImageNet weights into the backbone (for training /
+    fine-tuning). Inference leaves it False and loads our own checkpoint instead.
+    """
+    weights = models.EfficientNet_B0_Weights.IMAGENET1K_V1 if pretrained else None
+    backbone = models.efficientnet_b0(weights=weights)
     in_features = backbone.classifier[1].in_features
     backbone.classifier[1] = nn.Linear(in_features, num_classes)
     return backbone

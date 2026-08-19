@@ -40,12 +40,18 @@ export default function ChatPage() {
         setLoading(false);
         return;
       }
+      const about = new URLSearchParams(window.location.search).get('about') || undefined;
       const res = await fetch(`${apiUrl}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, chat_history: messages, condition: about }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        const detail = typeof data?.detail === 'string' ? data.detail : 'Please try again in a moment.';
+        setMessages(prev => [...prev, { role: 'assistant', content: `Sorry — ${detail}` }]);
+        return;
+      }
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: data.response ?? data.message ?? 'Sorry, I could not process that request.',

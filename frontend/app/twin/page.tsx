@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import AppSidebar from "@/components/AppSidebar";
-import TwinViewer, { type TwinSnapshot } from "@/components/TwinViewer";
+import TwinStage from "@/components/TwinStage";
+import { type TwinSnapshot } from "@/components/TwinViewer";
 import { type ZoneConditions, type Landmark, ZONE_LABEL_COLORS } from "@/lib/meshUtils";
 
 function toTitleCase(s: string) {
@@ -98,7 +99,7 @@ export default async function TwinPage() {
               <div className="text-xs font-medium tracking-wider uppercase mb-0.5" style={{ color: "var(--text-mute)" }}>
                 Digital Skin Twin
               </div>
-              <h1 className="font-display text-[1.6rem]" style={{ color: "var(--text)" }}>3D FACE MESH</h1>
+              <h1 className="font-display text-[1.6rem]" style={{ color: "var(--text)" }}>SKIN TWIN</h1>
             </div>
             {twin?.face_geometry?.captured_at && (
               <div className="text-xs" style={{ color: "var(--text-mute)" }}>
@@ -111,7 +112,7 @@ export default async function TwinPage() {
           </div>
 
           <div style={{ flex: 1, minHeight: 0 }}>
-            <TwinViewer
+            <TwinStage
               landmarks={landmarks}
               zoneConditions={zoneConditions}
               snapshots={twinSnapshots}

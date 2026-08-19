@@ -15,13 +15,14 @@ import torch.nn.functional as F
 
 from .model_loader import load_model, get_class_names, TemperatureScaler
 from .preprocessing import preprocess_bytes
+from .gradcam import generate_gradcam
 
 logger = logging.getLogger(__name__)
 
 _CONFIDENCE_THRESHOLD = float(os.getenv("CONFIDENCE_THRESHOLD", "0.50"))
 _LOW_CONFIDENCE_THRESHOLD = float(os.getenv("LOW_CONFIDENCE_THRESHOLD", "0.35"))
 
-MODEL_VERSION = os.getenv("MODEL_VERSION", "efficientnet-b0-6cls-v1")
+MODEL_VERSION = os.getenv("MODEL_VERSION", "efficientnet-b0-12cls-v1")
 
 
 @dataclass
@@ -89,3 +90,15 @@ class InferenceEngine:
             confidence_threshold_met=primary.confidence >= _CONFIDENCE_THRESHOLD,
             low_confidence_flag=primary.confidence < _LOW_CONFIDENCE_THRESHOLD,
         )
+
+    def explain(self, image_bytes: bytes, condition: str) -> str | None:
+        """Grad-CAM heatmap (base64 PNG data URI) for the given class name.
+
+        Best-effort: returns None if generation fails. Runs a grad-enabled
+        pass, so it is intentionally separate from the inference-mode predict().
+        """
+        try:
+            class_index = self._class_names.index(condition)
+        except ValueError:
+            class_index = 0
+        return generate_gradcam(self._model, self._device, image_bytes, class_index)

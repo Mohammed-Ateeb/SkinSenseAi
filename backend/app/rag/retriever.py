@@ -19,10 +19,13 @@ Usage (inside FastAPI, replacing get_matching_products):
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any, List, Optional
 
 from .embeddings import embed_query
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -127,7 +130,14 @@ class RagRetriever:
         if extra_query.strip():
             query = f"{query}. {extra_query.strip()}"
 
-        embedding = embed_query(query)
+        # Retrieval is best-effort: if embeddings or the pgvector RPCs are
+        # unavailable (e.g. the vector migration/backfill hasn't run), degrade
+        # to empty context so chat/analysis still answer from general knowledge.
+        try:
+            embedding = embed_query(query)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Embedding failed; returning empty RAG context: %s", e)
+            return RetrievedContext(query=query, products=[], knowledge=[])
 
         products = self._match_products(embedding)
         knowledge = self._match_knowledge(embedding) if with_knowledge else []
@@ -137,23 +147,31 @@ class RagRetriever:
     # -- internal RPC calls ------------------------------------------------
 
     def _match_products(self, embedding: List[float]) -> List[ProductContext]:
-        resp = self._supabase.rpc(
-            "match_products",
-            {
-                "query_embedding": embedding,
-                "match_threshold": self._product_threshold,
-                "match_count": self._product_count,
-            },
-        ).execute()
+        try:
+            resp = self._supabase.rpc(
+                "match_products",
+                {
+                    "query_embedding": embedding,
+                    "match_threshold": self._product_threshold,
+                    "match_count": self._product_count,
+                },
+            ).execute()
+        except Exception as e:  # noqa: BLE001 — RPC/vector store may be absent
+            logger.warning("match_products RPC unavailable; no products: %s", e)
+            return []
         return [ProductContext.from_row(r) for r in (resp.data or [])]
 
     def _match_knowledge(self, embedding: List[float]) -> List[KnowledgeContext]:
-        resp = self._supabase.rpc(
-            "match_knowledge",
-            {
-                "query_embedding": embedding,
-                "match_threshold": self._knowledge_threshold,
-                "match_count": self._knowledge_count,
-            },
-        ).execute()
+        try:
+            resp = self._supabase.rpc(
+                "match_knowledge",
+                {
+                    "query_embedding": embedding,
+                    "match_threshold": self._knowledge_threshold,
+                    "match_count": self._knowledge_count,
+                },
+            ).execute()
+        except Exception as e:  # noqa: BLE001 — RPC/vector store may be absent
+            logger.warning("match_knowledge RPC unavailable; no knowledge: %s", e)
+            return []
         return [KnowledgeContext.from_row(r) for r in (resp.data or [])]

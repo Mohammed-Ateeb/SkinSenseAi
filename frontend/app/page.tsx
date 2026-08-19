@@ -1,5 +1,5 @@
 'use client';
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -61,8 +61,19 @@ const STEPS = [
 
 export default function LandingPage() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [activeSection, setActiveSection] = useState<string>("");
 
   useGSAP(() => {
+    // Scroll-spy: glow the matching nav link while its section is centered
+    (["features", "how"] as const).forEach(id => {
+      ScrollTrigger.create({
+        trigger: `#${id}`,
+        start: "top center",
+        end: "bottom center",
+        onToggle: self => { if (self.isActive) setActiveSection(id); },
+      });
+    });
+
     const tl = gsap.timeline({ delay: 0.1 });
     tl.from(".hero-tag", { y: 16, opacity: 0, duration: 0.5, ease: "power2.out" })
       .from(".hero-title .word", { y: 60, opacity: 0, duration: 0.8, stagger: 0.07, ease: "power3.out" }, "-=0.2")
@@ -98,8 +109,14 @@ export default function LandingPage() {
           <span>SKIN<span style={{ color: "var(--gold)" }}>SENSE</span></span>
         </span>
         <div className="hidden md:flex items-center gap-8 text-sm font-medium" style={{ color: "var(--text-mute)" }}>
-          <a href="#features" className="hover:text-[#C9963E] transition-colors">Features</a>
-          <a href="#how" className="hover:text-[#C9963E] transition-colors">How it works</a>
+          <a href="#features" className="hover:text-[#C9963E] transition-all"
+            style={activeSection === "features" ? { color: "var(--gold)", textShadow: "0 0 14px rgba(201,150,62,0.75)" } : undefined}>
+            Features
+          </a>
+          <a href="#how" className="hover:text-[#C9963E] transition-all"
+            style={activeSection === "how" ? { color: "var(--gold)", textShadow: "0 0 14px rgba(201,150,62,0.75)" } : undefined}>
+            How it works
+          </a>
         </div>
         <div className="flex items-center gap-3">
           <Link href="/login" className="text-sm font-medium px-4 py-2 transition-colors" style={{ color: "var(--text-dim)" }}>Sign in</Link>

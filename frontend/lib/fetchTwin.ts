@@ -8,10 +8,13 @@
 import { createSupabaseServerClient } from "./supabaseServer";
 import type { DigitalTwin, TwinSnapshot, FitzpatrickTone } from "@/types/twin";
 
+// Only columns that actually exist on public.skin_twin_snapshots. (The table's
+// PK is `id`; scan_count / last_scan_at / last_updated_at live on skin_twins,
+// not the snapshots — requesting them previously made every query error out.)
 const SNAPSHOT_COLUMNS =
-  "twin_id, user_id, fitzpatrick_skin_tone, hydration_index, barrier_integrity, " +
-  "active_flare_ups, dominant_condition, scan_count, last_scan_at, last_updated_at, " +
-  "created_at, snapshot_id, deltas, analysis_result_id, trigger, chat_feedback_summary";
+  "id, twin_id, user_id, fitzpatrick_skin_tone, hydration_index, barrier_integrity, " +
+  "active_flare_ups, dominant_condition, created_at, deltas, analysis_result_id, " +
+  "trigger, chat_feedback_summary";
 
 export interface TwinBundle {
   /** Newest snapshot, treated as the live twin. */
@@ -41,8 +44,10 @@ export async function fetchTwinBundle(): Promise<TwinBundle | null> {
 
   if (error || !data || data.length === 0) return null;
 
-  const snapshots = (data as RawSnapshot[]).map(normaliseSnapshot);
-  return { current: snapshots[snapshots.length - 1], snapshots };
+  const snapshots = (data as unknown as RawSnapshot[]).map(normaliseSnapshot);
+  // scan_count isn't stored per-snapshot; the number of snapshots IS the count.
+  const current = { ...snapshots[snapshots.length - 1], scan_count: snapshots.length };
+  return { current, snapshots };
 }
 
 // --- normalisation (isolates any minor DB drift) ---------------------------
@@ -62,7 +67,7 @@ function normaliseSnapshot(r: RawSnapshot): TwinSnapshot {
     last_scan_at: String(r.last_scan_at ?? r.created_at ?? ""),
     last_updated_at: String(r.last_updated_at ?? r.created_at ?? ""),
     created_at: String(r.created_at ?? ""),
-    snapshot_id: String(r.snapshot_id ?? ""),
+    snapshot_id: String(r.id ?? r.snapshot_id ?? ""),
     deltas:
       (r.deltas as TwinSnapshot["deltas"]) ?? {
         hydration_index: 0,

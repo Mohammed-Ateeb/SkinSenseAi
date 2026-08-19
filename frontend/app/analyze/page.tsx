@@ -22,6 +22,7 @@ interface AnalyzeResponse {
   twin_state: Record<string, unknown>;
   guardrail_flags: unknown[];
   low_confidence: boolean;
+  gradcam?: string | null;
 }
 
 const FITZPATRICK_COLORS = ["#F6D6B0", "#E8C490", "#C68642", "#8D5524", "#5A3310", "#2A1506"];
@@ -73,12 +74,25 @@ function drawZoneBoxes(ctx: CanvasRenderingContext2D, landmarks: FaceLandmark[],
   ctx.restore();
 }
 
+// Resolves true once the video actually produces frames; false if it stays
+// black (no picture) within the timeout — this is what catches "black screen".
+function waitForVideoFrames(v: HTMLVideoElement, timeoutMs = 4000): Promise<boolean> {
+  return new Promise(resolve => {
+    if (v.videoWidth > 0) return resolve(true);
+    let done = false;
+    const finish = (ok: boolean) => { if (!done) { done = true; clearInterval(iv); resolve(ok); } };
+    const iv = setInterval(() => { if (v.videoWidth > 0) finish(true); }, 200);
+    setTimeout(() => finish(v.videoWidth > 0), timeoutMs);
+  });
+}
+
 export default function AnalyzePage() {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // shared state
-  const [mode, setMode] = useState<"webcam" | "upload">("webcam");
+  // shared state — default to Upload so the camera never auto-starts (a busy/
+  // absent/blocked camera was the "black screen"); webcam is now opt-in.
+  const [mode, setMode] = useState<"webcam" | "upload">("upload");
   const [fitzpatrick, setFitzpatrick] = useState<number | null>(null);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +106,8 @@ export default function AnalyzePage() {
   const [dragging, setDragging] = useState(false);
 
   // webcam mode
-  const [webcamStatus, setWebcamStatus] = useState<"loading" | "ready" | "captured">("loading");
+  const [webcamStatus, setWebcamStatus] = useState<"loading" | "ready" | "captured" | "error">("loading");
+  const [camError, setCamError] = useState<string>("");
   const [faceDetected, setFaceDetected] = useState(false);
   const [capturedThumb, setCapturedThumb] = useState<string | null>(null);
   const [capturedLandmarks, setCapturedLandmarks] = useState<FaceLandmark[] | null>(null);
@@ -139,19 +154,44 @@ export default function AnalyzePage() {
         if (cancelled) { fl.close(); return; }
         faceLandmarkerRef.current = fl;
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
-        });
+        let stream: MediaStream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+          });
+        } catch (err) {
+          if (cancelled) return;
+          const name = err instanceof DOMException ? err.name : "";
+          setCamError(
+            name === "NotAllowedError" ? "Camera access is blocked. Allow camera permission in your browser, or use Upload."
+            : name === "NotReadableError" ? "Your camera is in use by another app (Zoom, Teams, Camera…). Close it and retry, or use Upload."
+            : name === "NotFoundError" ? "No camera was found on this device. Please use Upload instead."
+            : "Camera unavailable. Please use Upload instead."
+          );
+          setWebcamStatus("error");
+          return;
+        }
         if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
         streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          await videoRef.current.play();
+          try { await videoRef.current.play(); } catch { /* handled by frame check */ }
+          const hasFrames = await waitForVideoFrames(videoRef.current);
+          if (cancelled) return;
+          if (!hasFrames) {
+            stream.getTracks().forEach(t => t.stop());
+            setCamError("The camera didn't produce a picture (it may be blocked, off, or in use). Retry, or use Upload.");
+            setWebcamStatus("error");
+            return;
+          }
         }
         setWebcamStatus("ready");
         startDetectionLoop(fl);
       } catch {
-        if (!cancelled) setError("Camera or face-detection unavailable. Try uploading a photo instead.");
+        if (!cancelled) {
+          setCamError("Face detection failed to load. Check your connection, or use Upload.");
+          setWebcamStatus("error");
+        }
       }
     }
 
@@ -380,6 +420,17 @@ export default function AnalyzePage() {
                 </div>
               </div>
 
+              {result.gradcam && (
+                <div className="glass-card p-5 mb-4">
+                  <div className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: "var(--text-mute)" }}>AI Focus Map</div>
+                  <img src={result.gradcam} alt="Grad-CAM heatmap of AI attention"
+                    className="w-full rounded-xl" style={{ maxWidth: "300px", margin: "0 auto", display: "block" }} />
+                  <p className="text-xs mt-3 text-center leading-relaxed" style={{ color: "var(--text-mute)" }}>
+                    Warmer areas show the regions that most influenced the AI&apos;s prediction (Grad-CAM).
+                  </p>
+                </div>
+              )}
+
               {result.differential_diagnoses.length > 0 && (
                 <div className="glass-card p-5 mb-4">
                   <div className="text-xs font-medium uppercase tracking-wider mb-4" style={{ color: "var(--text-mute)" }}>Differential Diagnoses</div>
@@ -553,6 +604,30 @@ export default function AnalyzePage() {
                         style={{ borderColor: "rgba(201,150,62,0.2)", borderTopColor: "var(--gold)" }} />
                       <div className="text-sm font-medium mb-1" style={{ color: "var(--text)" }}>Loading face detection…</div>
                       <div className="text-xs" style={{ color: "var(--text-mute)" }}>Allow camera access when prompted</div>
+                    </div>
+                  )}
+
+                  {webcamStatus === "error" && (
+                    <div className="glass-card p-8 text-center mb-6" style={{ minHeight: "280px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "10px" }}>
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center mb-1" style={{ background: "rgba(232,146,124,0.15)" }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                          <path d="M23 7l-7 5 7 5V7z" stroke="#B85040" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                          <rect x="1" y="5" width="15" height="14" rx="2" stroke="#B85040" strokeWidth="1.6"/>
+                          <path d="M2 2l20 20" stroke="#B85040" strokeWidth="1.6" strokeLinecap="round"/>
+                        </svg>
+                      </div>
+                      <div className="text-sm font-semibold" style={{ color: "var(--text)" }}>Camera unavailable</div>
+                      <div className="text-xs max-w-xs leading-relaxed" style={{ color: "var(--text-mute)" }}>{camError}</div>
+                      <div className="flex gap-3 mt-3">
+                        <button onClick={() => { setCamError(""); setWebcamStatus("loading"); setMode("upload"); setTimeout(() => setMode("webcam"), 50); }}
+                          className="px-4 py-2.5 text-sm font-medium rounded-xl transition-all"
+                          style={{ background: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.6)", color: "var(--text-dim)" }}>
+                          Retry camera
+                        </button>
+                        <button onClick={() => { setCamError(""); setMode("upload"); }} className="btn-gold px-5 py-2.5 text-sm font-semibold">
+                          Use Upload
+                        </button>
+                      </div>
                     </div>
                   )}
 

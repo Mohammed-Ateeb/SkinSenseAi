@@ -27,6 +27,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [issues, setIssues] = useState<string[]>([]);
   const [success, setSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -38,18 +39,60 @@ export default function SignupPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!usernameValid) { setError("Username must be 3–20 characters: letters, numbers, or underscores."); return; }
-    if (!allRulesMet) { setError("Please meet all password requirements below."); return; }
-    if (password !== confirm) { setError("Passwords do not match."); return; }
+
+    // Collect everything that's missing/invalid and show it in one popup
+    const problems: string[] = [];
+    if (!username.trim()) problems.push("Enter a username");
+    else if (!usernameValid) problems.push("Username must be 3–20 characters (letters, numbers, underscores)");
+    if (!email.trim()) problems.push("Enter your email address");
+    else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) problems.push("Enter a valid email address");
+    RULES.forEach(r => { if (!r.test(password)) problems.push(`Password needs: ${r.label.toLowerCase()}`); });
+    if (password && confirm && password !== confirm) problems.push("Passwords do not match");
+    else if (!confirm) problems.push("Confirm your password");
+
+    if (problems.length) { setIssues(problems); return; }
+
     setIsSubmitting(true);
     const { error } = await signUp(email, password, username.trim());
-    if (error) { setError(error); setIsSubmitting(false); }
+    if (error) { setIssues([error]); setIsSubmitting(false); }
     else setSuccess(true);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden"
       style={{ background: "linear-gradient(135deg, #EDD9C0 0%, #E8C9A0 40%, #F0D5C0 100%)" }}>
+
+      {/* "What's missing" popup */}
+      {issues.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 animate-fade-up"
+          style={{ background: "rgba(42,31,20,0.35)", backdropFilter: "blur(3px)" }}
+          onClick={() => setIssues([])}>
+          <div className="glass-card p-7 max-w-sm w-full" onClick={e => e.stopPropagation()}
+            style={{ background: "rgba(255,255,255,0.85)" }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: "rgba(232,146,124,0.15)" }}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M10 6v5M10 14h.01" stroke="#B85040" strokeWidth="1.8" strokeLinecap="round" />
+                  <circle cx="10" cy="10" r="8" stroke="#B85040" strokeWidth="1.5" />
+                </svg>
+              </div>
+              <h3 className="font-semibold text-base" style={{ color: "var(--text)" }}>Please fix the following</h3>
+            </div>
+            <ul className="space-y-2 mb-6">
+              {issues.map((p, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "var(--text-dim)" }}>
+                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#B85040" }} />
+                  {p}
+                </li>
+              ))}
+            </ul>
+            <button onClick={() => setIssues([])} className="btn-gold w-full py-3 text-sm font-semibold">
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Blobs */}
       <div className="animate-float-blob absolute pointer-events-none" style={{
