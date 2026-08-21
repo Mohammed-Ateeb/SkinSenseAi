@@ -23,7 +23,7 @@ inference          WEIGHTS_PATH=best_model.pt
 
 ```python
 # 1. Runtime → Change runtime type → GPU
-!git clone <your-repo-url> skinsense && cd skinsense/backend/app/ml
+!git clone <your-repo-url> skinsense && cd skinsense/backend/app/ml/training
 !pip install -r requirements-train.txt
 
 # 2. Build the dataset from SCIN (public bucket, no auth).

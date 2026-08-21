@@ -59,3 +59,10 @@ dev-server.log
 
 # Playwright MCP screenshots (transient tool artifacts)
 .playwright-mcp/
+
+# Large local datasets — never commit (keep these in Downloads / Google Drive)
+/archive*.zip
+/zr7vgbcyr2*.zip
+/fitzpatrick17k.csv
+dataset_raw/
+# Note: backend/app/ml/training/dataset_manifest.csv IS tracked (it's a tiny label index).

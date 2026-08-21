@@ -32,12 +32,13 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
-# Import the shared architecture so training and inference can never drift.
-# Works whether run as a module or as a plain script (e.g. on Colab).
+# Import the shared architecture (lives one level up in the ml/ package) so
+# training and inference can never drift. Works whether run as a module or as a
+# plain script (e.g. on Colab).
 try:
-    from .model_loader import CLASS_NAMES, TemperatureScaler, _build_efficientnet_b0
+    from ..model_loader import CLASS_NAMES, TemperatureScaler, _build_efficientnet_b0
 except ImportError:  # run as a script
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from model_loader import CLASS_NAMES, TemperatureScaler, _build_efficientnet_b0
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -111,8 +112,14 @@ def _class_weights(train_ds, device) -> torch.Tensor:
     counts = torch.zeros(len(CLASS_NAMES))
     for _, local_label in train_ds.samples:
         counts[local_to_global[local_label]] += 1
-    counts = counts.clamp(min=1.0)
-    w = counts.sum() / (len(counts) * counts)
+
+    # Weight ONLY the classes that actually have training samples. Absent classes
+    # get weight 0 — otherwise inverse-frequency hands them an enormous weight
+    # which, via label smoothing, dominates the loss and collapses predictions
+    # onto classes that never appear.
+    present = counts > 0
+    w = torch.zeros(len(CLASS_NAMES))
+    w[present] = counts[present].sum() / (present.sum() * counts[present])
     return w.to(device)
 
 
@@ -176,8 +183,15 @@ def _calibrate_temperature(model, loader, device):
         return loss
 
     optimizer.step(_closure)
-    t = float(temperature.detach().clamp(min=0.05).item())
-    logger.info("Calibrated temperature = %.3f", t)
+    # Clamp to a sane calibration range. A value pinned at a bound (esp. the low
+    # end) means the model isn't cleanly calibratable yet — fall back to 1.0
+    # rather than serve a pathologically over/under-confident temperature.
+    raw = float(temperature.detach().item())
+    t = min(max(raw, 0.5), 5.0)
+    if t in (0.5, 5.0):
+        logger.warning("Calibration hit bound (raw=%.3f); using T=1.0 instead.", raw)
+        t = 1.0
+    logger.info("Calibrated temperature = %.3f (raw %.3f)", t, raw)
     return t
 
 

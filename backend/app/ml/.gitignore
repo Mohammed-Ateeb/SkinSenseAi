@@ -1,0 +1,6 @@
+# Training artifacts — not source. Regenerate via merge_datasets.py / train.py.
+data/
+*.pt
+*.pth
+train.log
+__pycache__/
