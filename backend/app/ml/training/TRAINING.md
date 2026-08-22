@@ -1,4 +1,4 @@
-# Training SkinSense weights (SCIN → EfficientNet-B0)
+# Training SkinSense weights (EfficientNet-B0, 12 classes)
 
 Turns the random-init model into a real classifier. Produces a checkpoint you
 point `WEIGHTS_PATH` at — no inference-code changes needed. Grad-CAM becomes
@@ -11,59 +11,81 @@ vitiligo, hyperpigmentation, contact_dermatitis, warts, actinic_keratosis`
 
 Defined once in `model_loader.py:CLASS_NAMES`. Everything else derives from it.
 
-## Pipeline
+## The final dataset (`data/`)
+
+The many source archives (DermNet, ACNE04, HAM10000, PAD-UFES-20, SkinDisNet,
+Skin Disease Classification, a 15-class clinical set, IMG_CLASSES, …) were
+merged, deduplicated and mapped to the 12 classes, then **extracted once** into a
+self-contained ImageFolder tree:
 
 ```
-prepare_scin.py   SCIN (public GCS) ──►  data/{train,val}/<class>/*.jpg
-train.py          ImageFolder       ──►  best_model.pt   (TemperatureScaler state_dict)
-inference          WEIGHTS_PATH=best_model.pt
+data/train/<class>/*.jpg
+data/val/<class>/*.jpg
 ```
 
-## Run it on Colab (GPU)
+**Current set: 24,132 images (20,692 train / 3,440 val), 11 classes**, balanced
+at ≤2,500 train / 400 val per class:
 
-```python
-# 1. Runtime → Change runtime type → GPU
-!git clone <your-repo-url> skinsense && cd skinsense/backend/app/ml/training
-!pip install -r requirements-train.txt
+| class | train | class | train |
+|---|--:|---|--:|
+| acne | 2500 | seborrheic_keratoses | 2500 |
+| eczema | 2500 | tinea | 2500 |
+| actinic_keratosis | 2500 | contact_dermatitis | 2500 |
+| psoriasis | 1906 | vitiligo | 1693 |
+| warts | 1519 | hyperpigmentation | 571 |
+| rosacea | 3 | melasma | 0 |
 
-# 2. Build the dataset from SCIN (public bucket, no auth).
-#    --dry-run first to see how many images each class yields.
-!python prepare_scin.py --out ./data --dry-run
-!python prepare_scin.py --out ./data --min-weight 0.5 --max-per-class 800
+**`melasma` has no images and `rosacea` only 3** — they exist only in the
+URL-based Fitzpatrick17k set (most source URLs are dead). Backfill via
+`download_fitzpatrick.py`, or drop JPEGs into `data/{train,val}/<class>/`.
 
-# 3. Fine-tune from ImageNet weights.
-!python train.py --data ./data --epochs 25 --batch-size 32 --out best_model.pt
+### How `data/` was built (record — the raw zips have been deleted)
 
-# 4. Download best_model.pt, then serve it:
-#    set WEIGHTS_PATH=/abs/path/best_model.pt in the backend env.
+1. `build_ultimate_manifest.py` scanned every archive and emitted
+   `dataset_manifest_ultimate.csv` (cols `source,zip,inner_zip,entry,label,
+   split,crc32,size`), deduping identical images by CRC32+size (48,314 unique
+   rows; 22,540 dupes dropped), handling nested zip-in-zip.
+2. `extract_final_dataset.py` read that manifest and wrote the capped, RGB-JPEG
+   ImageFolder tree above.
+
+The ~27 GB of source zips were removed after extraction. To rebuild `data/` (or
+re-extract with different caps) you must re-download the archives first — see
+`docs/DATASETS.md`.
+
+## Train it — `SkinSense_Train.ipynb` (recommended)
+
+Self-contained notebook, same architecture as `model_loader.py` (so the
+checkpoint loads with `strict=True`).
+
+- **Locally:** open the notebook, run top to bottom (skip the Colab upload cell).
+- **Colab (GPU):** run the last cell locally to make `data.zip`, upload it, then
+  Runtime → GPU and run top to bottom.
+
+Output: `skinsense_efficientnet_b0.pt`. Copy it to `backend/weights/` and set
+`WEIGHTS_PATH=./weights/skinsense_efficientnet_b0.pt`.
+
+## Train it — `train.py` (CLI, same logic)
+
+```bash
+pip install -r requirements-train.txt
+python train.py --data ./data --epochs 25 --batch-size 32 --out skinsense_efficientnet_b0.pt
 ```
 
-## Key knobs
-
-| Flag (`prepare_scin.py`) | Meaning |
-|---|---|
-| `--min-weight 0.5` | keep a case only if its top dermatologist condition weight >= this. Raise for cleaner labels, fewer images. |
-| `--max-per-class 800` | cap per class to curb imbalance and download size (`0` = no cap). |
-| `--dry-run` | print per-class counts, download nothing. |
-
-| Flag (`train.py`) | Meaning |
+| Flag | Meaning |
 |---|---|
 | `--warmup-epochs 3` | train the head only first, then unfreeze the backbone. |
 | `--patience 6` | early-stop after N epochs with no val improvement. |
-| Selection metric | **macro recall** on val (robust to class imbalance), not raw accuracy. |
-| Calibration | fits the temperature scalar on val after training (already wired into `TemperatureScaler`). |
+| Selection metric | **macro recall** on val (robust to imbalance), not accuracy. |
+| Calibration | fits the temperature scalar on val after training. |
 
 ## Important caveats
 
-- **SCIN won't cover all 12 classes cleanly.** Melasma, contact dermatitis, and
-  hyperpigmentation are sparse; `prepare_scin.py` warns which classes got zero
-  images. The model still outputs 12 logits — classes with no data just never
-  get predicted. Backfill them from DermNet / ISIC / your own images by dropping
-  more JPEGs into `data/train/<class>/` and `data/val/<class>/`.
-- **This is not a medical device.** SCIN is crowdsourced consumer photos with
-  weighted differentials, not biopsy-confirmed labels. Treat outputs as
-  educational/triage signal, keep the existing confidence thresholds and
-  low-confidence flag, and keep the disclaimer in the UI.
-- **Checkpoint portability:** `train.py` always builds a 12-output head in
+- **Two classes are effectively unlearnable here:** `melasma` (0 imgs) and
+  `rosacea` (3). The model still outputs 12 logits — absent classes get class
+  weight 0 and are simply never predicted.
+- **Not a medical device.** Labels are folder-level dataset labels, not
+  biopsy-confirmed for every image. Treat outputs as educational/triage signal,
+  keep the confidence threshold + low-confidence flag, and keep the UI disclaimer.
+- **Checkpoint portability:** training always builds a 12-output head in
   `CLASS_NAMES` order and remaps folder labels to that global index, so a
   checkpoint trained on a subset of classes still loads with `strict=True`.
