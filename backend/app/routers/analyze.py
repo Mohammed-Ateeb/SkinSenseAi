@@ -1,10 +1,11 @@
 import os
+import uuid
 import logging
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from app.auth import get_current_user, CurrentUser
 from app.services.supabase_client import get_supabase
-from app.services import groq_service
+from app.services import groq_service, product_catalog
 from app.ml.inference import InferenceEngine
 from app.rag.retriever import RagRetriever
 from app.guardrail.guardrail import validate
@@ -97,11 +98,28 @@ async def analyze(body: AnalyzeRequest, user: CurrentUser = Depends(get_current_
     # 5. Groq LLM generation
     llm_response = groq_service.generate_analysis(predict_result, rag_context, body.additional_context)
 
-    # 6. Post-generation guardrail
-    # validate() uses keyword-only arg product_names (after *)
+    # Products: RAG results, or the mock catalog fallback when the vector store
+    # is empty — so recommendations are never blank.
+    if rag_context.products:
+        products_payload = [
+            {
+                "product_id": str(p.product_id),
+                "name": p.name,
+                "active_ingredients": p.active_ingredients,
+                "priority_score": p.priority_score,
+                "similarity": p.similarity,
+            }
+            for p in rag_context.products
+        ]
+    else:
+        products_payload = product_catalog.recommend(predict_result.primary_condition)
+
+    # 6. Post-generation guardrail — flag only, never strip sentences (stripping
+    # mangled the report and left artifacts like ".g").
     validation_result = validate(
         llm_response,
-        product_names=rag_context.product_whitelist,
+        product_names=[p["name"] for p in products_payload],
+        strip_hallucinated_products=False,
     )
 
     # 7. Save analysis_results
@@ -118,22 +136,19 @@ async def analyze(body: AnalyzeRequest, user: CurrentUser = Depends(get_current_
         "low_confidence_flag": predict_result.low_confidence_flag,
     }
 
-    recommended_ids = [str(p.product_id) for p in rag_context.products[:3] if p.product_id]
+    # recommended_product_ids is a uuid[] column — include only real UUIDs
+    # (mock-catalog ids like "mock-acne-0" are not UUIDs and would break the insert).
+    def _is_uuid(v) -> bool:
+        try:
+            uuid.UUID(str(v)); return True
+        except (ValueError, TypeError, AttributeError):
+            return False
+    recommended_ids = [str(p["product_id"]) for p in products_payload[:3] if _is_uuid(p.get("product_id"))]
 
     # Payloads persisted for the History detail page (image itself is never stored)
     differentials_payload = [
         {"condition": d.condition, "confidence": d.confidence}
         for d in predict_result.differential_diagnoses
-    ]
-    products_payload = [
-        {
-            "product_id": str(p.product_id),
-            "name": p.name,
-            "active_ingredients": p.active_ingredients,
-            "priority_score": p.priority_score,
-            "similarity": p.similarity,
-        }
-        for p in rag_context.products
     ]
     guardrail_payload = [f.__dict__ for f in validation_result.flagged_items]
 

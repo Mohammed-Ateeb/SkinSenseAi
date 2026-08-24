@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect, FormEvent } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import AppSidebar from '@/components/AppSidebar';
+import Markdown from '@/components/Markdown';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -153,7 +154,9 @@ export default function ChatPage() {
                 style={msg.role === 'user'
                   ? { background: "rgba(201,150,62,0.12)", border: "1px solid rgba(201,150,62,0.2)", color: "var(--text)" }
                   : { color: "var(--text)" }}>
-                {msg.content}
+                {msg.role === 'assistant'
+                  ? <Markdown text={msg.content} />
+                  : msg.content}
               </div>
             </div>
           ))}

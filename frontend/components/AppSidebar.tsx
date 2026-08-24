@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { isDermatologist } from "@/lib/role";
 
 const NAV = [
   {
@@ -23,11 +24,11 @@ const NAV = [
     icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 4v5l3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /><circle cx="9" cy="9" r="7" stroke="currentColor" strokeWidth="1.4" /></svg>,
   },
   {
-    href: "/twin", label: "3D Twin",
+    href: "/twin", label: "3D Twin", dermOnly: true,
     icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2L16 6v6L9 16 2 12V6L9 2z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" /><path d="M9 2v14M2 6l7 4 7-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>,
   },
   {
-    href: "/derm", label: "Clinician",
+    href: "/derm", label: "Clinician", dermOnly: true,
     icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2v5M9 7c0 2.2-1.8 4-4 4a3 3 0 106 0 3 3 0 106 0c-2.2 0-4-1.8-4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/><circle cx="9" cy="15" r="1.5" stroke="currentColor" strokeWidth="1.4"/></svg>,
   },
 ];
@@ -40,6 +41,7 @@ export default function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [label, setLabel] = useState<string>("");
+  const [isDerm, setIsDerm] = useState(false);
 
   // Restore collapse preference
   useEffect(() => {
@@ -52,6 +54,7 @@ export default function AppSidebar() {
       if (!user) return;
       const username = (user.user_metadata as Record<string, unknown> | null)?.username;
       setLabel(typeof username === "string" && username ? username : (user.email ?? ""));
+      setIsDerm(isDermatologist(user));
     });
   }, []);
 
@@ -103,7 +106,7 @@ export default function AppSidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-6 space-y-1">
-        {NAV.map(item => {
+        {NAV.filter(item => !("dermOnly" in item) || isDerm).map(item => {
           const active = isActive(item.href);
           return (
             <Link key={item.href} href={item.href}

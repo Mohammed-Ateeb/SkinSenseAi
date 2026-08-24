@@ -16,13 +16,17 @@ async def list_history(user: CurrentUser = Depends(get_current_user)):
 @router.get("/{analysis_id}")
 async def get_analysis(analysis_id: str, user: CurrentUser = Depends(get_current_user)):
     supabase = get_supabase()
-    result = supabase.table("analysis_results").select("*").eq("id", analysis_id).eq("user_id", user.id).single().execute()
-    if not result.data:
+    result = supabase.table("analysis_results").select("*").eq("id", analysis_id).eq("user_id", user.id).maybe_single().execute()
+    if not result or not result.data:
         raise HTTPException(status_code=404, detail="Analysis not found")
 
     analysis = result.data
-    snapshot_result = supabase.table("skin_twin_snapshots").select("*").eq(
-        "analysis_result_id", analysis_id
-    ).maybe_single().execute()
+    try:
+        snapshot_result = supabase.table("skin_twin_snapshots").select("*").eq(
+            "analysis_result_id", analysis_id
+        ).maybe_single().execute()
+        snapshot = snapshot_result.data if snapshot_result else None
+    except Exception:
+        snapshot = None
 
-    return {**analysis, "twin_snapshot": snapshot_result.data}
+    return {**analysis, "twin_snapshot": snapshot}

@@ -8,13 +8,47 @@ SUPABASE_JWT_SECRET=your-jwt-secret   # Supabase project settings > API > JWT Se
 """
 
 import os
+from functools import lru_cache
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
+from jwt import PyJWKClient
 
-SUPABASE_JWT_SECRET = os.environ["SUPABASE_JWT_SECRET"]
+SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET")
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
+_JWKS_URL = f"{SUPABASE_URL}/auth/v1/.well-known/jwks.json" if SUPABASE_URL else None
 
 bearer_scheme = HTTPBearer()
+
+
+@lru_cache(maxsize=1)
+def _jwk_client() -> PyJWKClient:
+    return PyJWKClient(_JWKS_URL)
+
+
+def _decode_token(token: str) -> dict:
+    """Verify a Supabase access token.
+
+    Modern Supabase projects sign with asymmetric keys (ES256/RS256) published
+    via JWKS; older projects use the HS256 shared secret. Try JWKS first and
+    fall back to HS256 so both styles work.
+    """
+    last_err: Exception | None = None
+    if _JWKS_URL:
+        try:
+            signing_key = _jwk_client().get_signing_key_from_jwt(token).key
+            return jwt.decode(
+                token, signing_key, algorithms=["ES256", "RS256"], audience="authenticated"
+            )
+        except jwt.ExpiredSignatureError:
+            raise
+        except Exception as e:  # wrong alg/kid, or JWKS fetch failed -> try HS256
+            last_err = e
+    if SUPABASE_JWT_SECRET:
+        return jwt.decode(
+            token, SUPABASE_JWT_SECRET, algorithms=["HS256"], audience="authenticated"
+        )
+    raise last_err or jwt.InvalidTokenError("No JWT verifier available")
 
 
 class CurrentUser:
@@ -42,12 +76,7 @@ def get_current_user(
     """
     token = credentials.credentials
     try:
-        payload = jwt.decode(
-            token,
-            SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
-            audience="authenticated",
-        )
+        payload = _decode_token(token)
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

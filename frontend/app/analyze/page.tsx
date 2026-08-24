@@ -6,11 +6,11 @@ import Link from "next/link";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import AppShell from "@/components/AppShell";
+import Markdown from "@/components/Markdown";
 
 // Guided reveal stages after analysis completes
 type ResultStage = "diagnosis" | "products" | "chat";
 
-interface FaceLandmark { x: number; y: number; z: number; }
 interface ConditionScore { condition: string; confidence: number; }
 interface AnalyzeResponse {
   analysis_id: string;
@@ -27,52 +27,6 @@ interface AnalyzeResponse {
 
 const FITZPATRICK_COLORS = ["#F6D6B0", "#E8C490", "#C68642", "#8D5524", "#5A3310", "#2A1506"];
 const FITZPATRICK_LABELS = ["Type I", "Type II", "Type III", "Type IV", "Type V", "Type VI"];
-
-// MediaPipe 468-landmark zone definitions
-const FACE_ZONES: Record<string, number[]> = {
-  forehead:   [10, 151, 107, 66, 105, 63, 70, 156, 124, 122, 119, 117, 123, 147, 213, 138, 127, 34, 21, 71, 68, 104, 109],
-  nose:       [4, 5, 1, 2, 3, 195, 197, 6, 19, 20, 94, 125, 354],
-  leftCheek:  [50, 205, 206, 207, 187, 147, 123, 116, 111, 101],
-  rightCheek: [280, 425, 426, 427, 411, 376, 352, 345, 340, 330],
-  chin:       [18, 200, 199, 175, 152, 148, 176, 149, 150, 136],
-  perioral:   [0, 267, 269, 270, 409, 291, 375, 321, 405, 314, 17, 84, 181, 91, 146, 61],
-};
-
-const ZONE_COLORS: Record<string, string> = {
-  forehead:   "rgba(212,168,83,",
-  nose:       "rgba(127,216,190,",
-  leftCheek:  "rgba(232,146,124,",
-  rightCheek: "rgba(232,146,124,",
-  chin:       "rgba(150,180,255,",
-  perioral:   "rgba(255,200,120,",
-};
-
-function drawZoneBoxes(ctx: CanvasRenderingContext2D, landmarks: FaceLandmark[], w: number, h: number) {
-  ctx.save();
-  for (const [zone, indices] of Object.entries(FACE_ZONES)) {
-    const pts = indices.map(i => landmarks[i]).filter(Boolean);
-    if (!pts.length) continue;
-    const xs = pts.map(p => p.x * w);
-    const ys = pts.map(p => p.y * h);
-    const pad = Math.max(w, h) * 0.012;
-    const x0 = Math.max(0, Math.min(...xs) - pad);
-    const y0 = Math.max(0, Math.min(...ys) - pad);
-    const bw = Math.min(w - x0, Math.max(...xs) - Math.min(...xs) + pad * 2);
-    const bh = Math.min(h - y0, Math.max(...ys) - Math.min(...ys) + pad * 2);
-    const col = ZONE_COLORS[zone];
-    ctx.strokeStyle = col + "0.75)";
-    ctx.lineWidth = 1.4;
-    ctx.setLineDash([5, 3]);
-    ctx.strokeRect(x0, y0, bw, bh);
-    ctx.fillStyle = col + "0.07)";
-    ctx.fillRect(x0, y0, bw, bh);
-    ctx.setLineDash([]);
-    ctx.fillStyle = col + "0.9)";
-    ctx.font = `bold ${Math.round(w * 0.018)}px system-ui`;
-    ctx.fillText(zone, x0 + 5, y0 + Math.round(w * 0.022));
-  }
-  ctx.restore();
-}
 
 // Resolves true once the video actually produces frames; false if it stays
 // black (no picture) within the timeout — this is what catches "black screen".
@@ -108,94 +62,54 @@ export default function AnalyzePage() {
   // webcam mode
   const [webcamStatus, setWebcamStatus] = useState<"loading" | "ready" | "captured" | "error">("loading");
   const [camError, setCamError] = useState<string>("");
-  const [faceDetected, setFaceDetected] = useState(false);
   const [capturedThumb, setCapturedThumb] = useState<string | null>(null);
-  const [capturedLandmarks, setCapturedLandmarks] = useState<FaceLandmark[] | null>(null);
+  const [tooDark, setTooDark] = useState(false);          // live preview is dim
+  const [captureTooDark, setCaptureTooDark] = useState(false);  // the taken shot is dim
 
   // refs
   const videoRef = useRef<HTMLVideoElement>(null);
-  const overlayRef = useRef<HTMLCanvasElement>(null);
   const captureRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const faceLandmarkerRef = useRef<any>(null);
-  const animRef = useRef<number>(0);
-  const lastTimeRef = useRef(-1);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const currentLandmarksRef = useRef<any>(null);
 
   useGSAP(() => {
     gsap.from(".analyze-main", { y: 40, opacity: 0, duration: 0.8, ease: "power3.out", delay: 0.1 });
   }, { scope: containerRef });
 
-  // Init MediaPipe + camera when entering webcam mode
+  // Open the webcam when entering camera mode (plain 2D capture — no MediaPipe/3D).
   useEffect(() => {
     if (mode !== "webcam") return;
     let cancelled = false;
 
-    async function initMediaPipe() {
+    async function openCamera() {
       setWebcamStatus("loading");
-      setFaceDetected(false);
+      setCamError("");
+      let stream: MediaStream;
       try {
-        const { FaceLandmarker, FilesetResolver } = await import("@mediapipe/tasks-vision");
-        const vision = await FilesetResolver.forVisionTasks(
-          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
-        );
-        const fl = await FaceLandmarker.createFromOptions(vision, {
-          baseOptions: {
-            modelAssetPath:
-              "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-            delegate: "GPU",
-          },
-          outputFaceBlendshapes: false,
-          runningMode: "VIDEO",
-          numFaces: 1,
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 960 } },
         });
-        if (cancelled) { fl.close(); return; }
-        faceLandmarkerRef.current = fl;
-
-        let stream: MediaStream;
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
-          });
-        } catch (err) {
-          if (cancelled) return;
-          const name = err instanceof DOMException ? err.name : "";
-          setCamError(
-            name === "NotAllowedError" ? "Camera access is blocked. Allow camera permission in your browser, or use Upload."
-            : name === "NotReadableError" ? "Your camera is in use by another app (Zoom, Teams, Camera…). Close it and retry, or use Upload."
-            : name === "NotFoundError" ? "No camera was found on this device. Please use Upload instead."
-            : "Camera unavailable. Please use Upload instead."
-          );
-          setWebcamStatus("error");
-          return;
-        }
-        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          try { await videoRef.current.play(); } catch { /* handled by frame check */ }
-          const hasFrames = await waitForVideoFrames(videoRef.current);
-          if (cancelled) return;
-          if (!hasFrames) {
-            stream.getTracks().forEach(t => t.stop());
-            setCamError("The camera didn't produce a picture (it may be blocked, off, or in use). Retry, or use Upload.");
-            setWebcamStatus("error");
-            return;
-          }
-        }
-        setWebcamStatus("ready");
-        startDetectionLoop(fl);
-      } catch {
-        if (!cancelled) {
-          setCamError("Face detection failed to load. Check your connection, or use Upload.");
-          setWebcamStatus("error");
-        }
+      } catch (err) {
+        if (cancelled) return;
+        const name = err instanceof DOMException ? err.name : "";
+        setCamError(
+          name === "NotAllowedError" ? "Camera access is blocked. Allow camera permission in your browser, or use Upload."
+          : name === "NotReadableError" ? "Your camera is in use by another app (Zoom, Teams, Camera…). Close it and retry, or use Upload."
+          : name === "NotFoundError" ? "No camera was found on this device. Please use Upload instead."
+          : "Camera unavailable. Please use Upload instead."
+        );
+        setWebcamStatus("error");
+        return;
       }
+      if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
+      streamRef.current = stream;
+      // Reveal the <video> element first. It is NOT mounted during "loading"
+      // (only the spinner is), so we can't attach the stream here — the attach
+      // effect below wires srcObject once the element exists. Doing it here was
+      // the black-screen bug: srcObject was set on a null ref and skipped.
+      setWebcamStatus("ready");
     }
 
-    initMediaPipe();
+    openCamera();
     return () => {
       cancelled = true;
       stopWebcam();
@@ -203,62 +117,80 @@ export default function AnalyzePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function startDetectionLoop(fl: any) {
-    const loop = () => {
-      const video = videoRef.current;
-      const canvas = overlayRef.current;
-      if (video && canvas && fl && video.readyState >= 2 && video.currentTime !== lastTimeRef.current) {
-        lastTimeRef.current = video.currentTime;
-        const det = fl.detectForVideo(video, performance.now());
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          if (det.faceLandmarks?.length > 0) {
-            currentLandmarksRef.current = det.faceLandmarks[0];
-            setFaceDetected(true);
-            drawZoneBoxes(ctx, det.faceLandmarks[0], canvas.width, canvas.height);
-          } else {
-            currentLandmarksRef.current = null;
-            setFaceDetected(false);
-          }
-        }
+  // Attach the live stream once the <video> element is actually in the DOM.
+  useEffect(() => {
+    if (webcamStatus !== "ready") return;
+    const v = videoRef.current;
+    const s = streamRef.current;
+    if (!v || !s) return;
+    v.srcObject = s;
+    let cancelled = false;
+    (async () => {
+      try { await v.play(); } catch { /* frame check decides */ }
+      const ok = await waitForVideoFrames(v);
+      if (cancelled) return;
+      if (!ok) {
+        s.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+        setCamError("The camera didn't produce a picture (it may be blocked, off, or in use). Retry, or use Upload.");
+        setWebcamStatus("error");
       }
-      animRef.current = requestAnimationFrame(loop);
-    };
-    animRef.current = requestAnimationFrame(loop);
-  }
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [webcamStatus]);
+
+  // Sample scene brightness while the camera is live; prompt for better light if dim.
+  useEffect(() => {
+    if (webcamStatus !== "ready") { setTooDark(false); return; }
+    const c = document.createElement("canvas");
+    c.width = 32; c.height = 24;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    const iv = setInterval(() => {
+      const v = videoRef.current;
+      if (!v || !v.videoWidth || !ctx) return;
+      ctx.drawImage(v, 0, 0, c.width, c.height);
+      const { data } = ctx.getImageData(0, 0, c.width, c.height);
+      let sum = 0;
+      for (let i = 0; i < data.length; i += 4) sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+      setTooDark(sum / (data.length / 4) < 65); // luminance 0-255; ~65 = dim
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [webcamStatus]);
 
   function stopWebcam() {
-    cancelAnimationFrame(animRef.current);
     streamRef.current?.getTracks().forEach(t => t.stop());
     streamRef.current = null;
-    faceLandmarkerRef.current?.close?.();
-    faceLandmarkerRef.current = null;
-    lastTimeRef.current = -1;
   }
 
-  // Webcam actions
+  // Capture the current video frame as a 2D still.
   const captureFrame = () => {
     const video = videoRef.current;
     const canvas = captureRef.current;
-    const lm = currentLandmarksRef.current;
-    if (!video || !canvas || !lm) return;
-    cancelAnimationFrame(animRef.current);
+    if (!video || !canvas || !video.videoWidth) return;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    canvas.getContext("2d")!.drawImage(video, 0, 0);
-    setCapturedThumb(canvas.toDataURL("image/jpeg", 0.7));
-    setCapturedLandmarks(lm.map((p: FaceLandmark) => ({ x: p.x, y: p.y, z: p.z })));
+    const cctx = canvas.getContext("2d")!;
+    cctx.drawImage(video, 0, 0);
+    // Measure brightness of the actual captured frame — gate analysis if too dark.
+    const w = 32, h = 24, t = document.createElement("canvas");
+    t.width = w; t.height = h;
+    const tctx = t.getContext("2d", { willReadFrequently: true });
+    if (tctx) {
+      tctx.drawImage(canvas, 0, 0, w, h);
+      const d = tctx.getImageData(0, 0, w, h).data;
+      let s = 0;
+      for (let i = 0; i < d.length; i += 4) s += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      setCaptureTooDark(s / (d.length / 4) < 65);
+    }
+    setCapturedThumb(canvas.toDataURL("image/jpeg", 0.8));
     setWebcamStatus("captured");
     stopWebcam();
   };
 
   const retakeWebcam = () => {
     setCapturedThumb(null);
-    setCapturedLandmarks(null);
+    setCaptureTooDark(false);
     setError(null);
     setWebcamStatus("loading");
     setMode("upload");
@@ -266,7 +198,7 @@ export default function AnalyzePage() {
   };
 
   const runWebcamAnalysis = async () => {
-    if (!captureRef.current || !capturedLandmarks) return;
+    if (!captureRef.current) return;
     setError(null);
     setGlobalStep("uploading");
     try {
@@ -281,7 +213,7 @@ export default function AnalyzePage() {
       const uploadRes = await fetch(`${apiUrl}/upload/request-url`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ filename: "face_scan.jpg", content_type: "image/jpeg" }),
+        body: JSON.stringify({ filename: "capture.jpg", content_type: "image/jpeg" }),
       });
       if (!uploadRes.ok) throw new Error("Couldn't prepare the upload. Please try again.");
       const { image_id, storage_path, token: uploadToken } = await uploadRes.json();
@@ -295,7 +227,7 @@ export default function AnalyzePage() {
       const analyzeRes = await fetch(`${apiUrl}/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ image_id, fitzpatrick_skin_tone: fitzpatrick, landmarks: capturedLandmarks }),
+        body: JSON.stringify({ image_id, fitzpatrick_skin_tone: fitzpatrick }),
       });
       if (!analyzeRes.ok) throw new Error("Analysis failed");
       setResult(await analyzeRes.json());
@@ -370,9 +302,9 @@ export default function AnalyzePage() {
     setResult(null);
     setError(null);
     setCapturedThumb(null);
-    setCapturedLandmarks(null);
+    setCaptureTooDark(false);
     setWebcamStatus("loading");
-    setFaceDetected(false);
+    setCamError("");
   };
 
   const isProcessing = globalStep === "uploading" || globalStep === "analyzing";
@@ -420,16 +352,10 @@ export default function AnalyzePage() {
                 </div>
               </div>
 
-              {result.gradcam && (
-                <div className="glass-card p-5 mb-4">
-                  <div className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: "var(--text-mute)" }}>AI Focus Map</div>
-                  <img src={result.gradcam} alt="Grad-CAM heatmap of AI attention"
-                    className="w-full rounded-xl" style={{ maxWidth: "300px", margin: "0 auto", display: "block" }} />
-                  <p className="text-xs mt-3 text-center leading-relaxed" style={{ color: "var(--text-mute)" }}>
-                    Warmer areas show the regions that most influenced the AI&apos;s prediction (Grad-CAM).
-                  </p>
-                </div>
-              )}
+              {/* AI Focus Map (Grad-CAM) removed: the classifier is trained on
+                  cropped lesion images, so its attention on full-face selfies is
+                  unreliable (it fixated on the eye). Re-enable once the model is
+                  retrained with face-region cropping. */}
 
               {result.differential_diagnoses.length > 0 && (
                 <div className="glass-card p-5 mb-4">
@@ -451,9 +377,7 @@ export default function AnalyzePage() {
               {result.llm_explanation && (
                 <div className="glass-card p-6 mb-4">
                   <div className="text-xs font-medium uppercase tracking-wider mb-4" style={{ color: "var(--text-mute)" }}>Your Skin Report</div>
-                  <div className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--text-dim)", fontWeight: 300 }}>
-                    {result.llm_explanation}
-                  </div>
+                  <Markdown text={result.llm_explanation} className="text-sm leading-relaxed" style={{ color: "var(--text-dim)", fontWeight: 300 }} />
                 </div>
               )}
 
@@ -554,7 +478,7 @@ export default function AnalyzePage() {
             <>
               <h1 className="font-display text-[2.8rem] mb-2" style={{ color: "var(--text)" }}>ANALYZE YOUR SKIN</h1>
               <p className="text-sm mb-8 leading-relaxed" style={{ color: "var(--text-dim)", fontWeight: 300 }}>
-                Scan your face live for a 3D skin twin with zone mapping, or upload a photo of the affected area.
+                Take a <strong>close-up</strong> that fills the frame with the affected area — not a full-face selfie — in good, even light for the most accurate result.
               </p>
 
               {error && (
@@ -580,7 +504,7 @@ export default function AnalyzePage() {
                           <rect x="1.5" y="5" width="13" height="9" rx="2" stroke="currentColor" strokeWidth="1.4"/>
                           <path d="M6 5V4a2 2 0 0 1 4 0v1" stroke="currentColor" strokeWidth="1.4"/>
                         </svg>
-                        Scan Face
+                        Use Camera
                       </>
                     ) : (
                       <>
@@ -602,7 +526,7 @@ export default function AnalyzePage() {
                     <div className="glass-card p-10 text-center mb-6" style={{ minHeight: "280px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
                       <div className="w-10 h-10 rounded-full border-2 animate-spin mb-4"
                         style={{ borderColor: "rgba(201,150,62,0.2)", borderTopColor: "var(--gold)" }} />
-                      <div className="text-sm font-medium mb-1" style={{ color: "var(--text)" }}>Loading face detection…</div>
+                      <div className="text-sm font-medium mb-1" style={{ color: "var(--text)" }}>Starting camera…</div>
                       <div className="text-xs" style={{ color: "var(--text-mute)" }}>Allow camera access when prompted</div>
                     </div>
                   )}
@@ -638,29 +562,31 @@ export default function AnalyzePage() {
                         <video ref={videoRef} playsInline muted autoPlay
                           className="w-full block"
                           style={{ transform: "scaleX(-1)", aspectRatio: "4/3", objectFit: "cover" }} />
-                        <canvas ref={overlayRef}
-                          className="absolute inset-0 w-full h-full"
-                          style={{ transform: "scaleX(-1)" }} />
-                        {/* Status pill */}
+                        {/* Hint pill */}
                         <div className="absolute top-3 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5"
-                          style={{
-                            background: faceDetected ? "rgba(127,216,190,0.18)" : "rgba(20,16,12,0.6)",
-                            backdropFilter: "blur(8px)",
-                            color: faceDetected ? "#5FBEA4" : "rgba(255,255,255,0.55)",
-                            border: `1px solid ${faceDetected ? "rgba(127,216,190,0.35)" : "rgba(255,255,255,0.12)"}`,
-                          }}>
-                          <span className="w-1.5 h-1.5 rounded-full inline-block"
-                            style={{ background: faceDetected ? "#7FD8BE" : "rgba(255,255,255,0.35)" }} />
-                          {faceDetected ? "Face detected — 6 zones mapped" : "Position your face in the frame"}
+                          style={{ background: "rgba(20,16,12,0.6)", backdropFilter: "blur(8px)", color: "rgba(255,255,255,0.75)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                          <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: tooDark ? "#E8927C" : "#7FD8BE" }} />
+                          Get close — fill the frame with the affected area
                         </div>
+                        {/* Low-light prompt */}
+                        {tooDark && (
+                          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-[92%] px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-2 justify-center text-center animate-fade-up"
+                            style={{ background: "rgba(184,80,64,0.9)", backdropFilter: "blur(8px)", color: "#fff", border: "1px solid rgba(255,255,255,0.15)" }}>
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
+                              <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M13 3l-1.5 1.5M4.5 11.5L3 13" stroke="#fff" strokeWidth="1.3" strokeLinecap="round"/>
+                              <circle cx="8" cy="8" r="2.5" stroke="#fff" strokeWidth="1.3"/>
+                            </svg>
+                            It&apos;s a bit dark — move to a brighter spot for a clearer, more accurate scan.
+                          </div>
+                        )}
                       </div>
-                      <button onClick={captureFrame} disabled={!faceDetected}
-                        className="btn-gold w-full py-4 text-sm font-semibold mt-4 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity">
+                      <button onClick={captureFrame}
+                        className="btn-gold w-full py-4 text-sm font-semibold mt-4 flex items-center justify-center gap-2 transition-opacity">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <circle cx="8" cy="8" r="3.5" fill="white"/>
                           <circle cx="8" cy="8" r="6.5" stroke="white" strokeWidth="1.4"/>
                         </svg>
-                        Capture Face Scan
+                        Capture Photo
                       </button>
                     </div>
                   )}
@@ -670,7 +596,7 @@ export default function AnalyzePage() {
                       <div className="relative rounded-2xl overflow-hidden mb-4"
                         style={{ background: "#111", border: "1px solid rgba(255,255,255,0.15)" }}>
                         {capturedThumb && (
-                          <img src={capturedThumb} alt="Captured face scan"
+                          <img src={capturedThumb} alt="Captured photo"
                             className="w-full block"
                             style={{ transform: "scaleX(-1)", aspectRatio: "4/3", objectFit: "cover" }} />
                         )}
@@ -679,17 +605,29 @@ export default function AnalyzePage() {
                           <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                             <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="#7FD8BE" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                           </svg>
-                          {capturedLandmarks?.length ?? 0} landmarks · 6 zones mapped
+                          Photo captured
                         </div>
                       </div>
+                      {captureTooDark && (
+                        <div className="mb-3 px-4 py-3 rounded-xl text-sm flex items-start gap-2"
+                          style={{ background: "rgba(232,146,124,0.14)", color: "#B85040", border: "1px solid rgba(232,146,124,0.28)" }}>
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0 mt-0.5">
+                            <path d="M8 5v3.5M8 11h.01" stroke="#B85040" strokeWidth="1.6" strokeLinecap="round"/>
+                            <circle cx="8" cy="8" r="6.5" stroke="#B85040" strokeWidth="1.4"/>
+                          </svg>
+                          <span>This photo is too dark, which makes the analysis inaccurate. Please sit under proper, even lighting and retake.</span>
+                        </div>
+                      )}
                       <div className="flex gap-3">
                         <button onClick={retakeWebcam}
                           className="flex-1 py-3.5 text-sm font-medium rounded-2xl transition-all"
-                          style={{ background: "rgba(255,255,255,0.4)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.5)", color: "var(--text-dim)" }}>
-                          Retake
+                          style={captureTooDark
+                            ? { background: "var(--gold)", color: "#fff" }
+                            : { background: "rgba(255,255,255,0.4)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.5)", color: "var(--text-dim)" }}>
+                          Retake{captureTooDark ? " in better light" : ""}
                         </button>
-                        <button onClick={runWebcamAnalysis}
-                          className="btn-gold flex-[2] py-3.5 text-sm font-semibold">
+                        <button onClick={runWebcamAnalysis} disabled={captureTooDark}
+                          className="btn-gold flex-[2] py-3.5 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed">
                           Analyze My Skin
                         </button>
                       </div>

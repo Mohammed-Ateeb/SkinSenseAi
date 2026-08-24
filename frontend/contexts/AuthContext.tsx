@@ -8,7 +8,7 @@ type AuthContextType = {
   user: User | null
   session: Session | null
   loading: boolean
-  signUp: (email: string, password: string, username: string) => Promise<{ error: string | null }>
+  signUp: (email: string, password: string, username: string, role?: string) => Promise<{ error: string | null }>
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
 }
@@ -40,12 +40,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signUp = async (email: string, password: string, username: string) => {
-    const { error } = await supabase.auth.signUp({
+  const signUp = async (email: string, password: string, username: string, role?: string) => {
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { username } },
+      // role is read by isDermatologist() to gate the 3D/clinician views.
+      options: { data: { username, role: role === 'dermatologist' ? 'dermatologist' : 'user' } },
     })
+    // Supabase obfuscates an existing email by returning a user with no identities
+    // (no error). Detect it so we can tell the user to log in instead.
+    if (!error && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      return { error: 'EMAIL_ALREADY_REGISTERED' }
+    }
+    if (error && /already registered|already exists|already been registered/i.test(error.message)) {
+      return { error: 'EMAIL_ALREADY_REGISTERED' }
+    }
     return { error: error?.message ?? null }
   }
 

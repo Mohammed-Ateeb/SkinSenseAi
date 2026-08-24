@@ -17,9 +17,14 @@ from torchvision import transforms
 _IMAGENET_MEAN = (0.485, 0.456, 0.406)
 _IMAGENET_STD = (0.229, 0.224, 0.225)
 
+# Resize the short side to 256, then center-crop to 224. This focuses the model
+# on the CENTRE of the frame (where the user is told to place the affected area),
+# instead of squashing a whole selfie into 224x224. The retraining pipeline uses
+# the same Resize(256)+CenterCrop(224) so training and inference stay aligned.
 _TRANSFORM = transforms.Compose(
     [
-        transforms.Resize((224, 224)),
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
         transforms.ToTensor(),
         transforms.Normalize(mean=_IMAGENET_MEAN, std=_IMAGENET_STD),
     ]

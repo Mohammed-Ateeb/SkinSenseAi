@@ -1,33 +1,48 @@
+'use client';
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import AppSidebar from "@/components/AppSidebar";
+
+interface AnalysisSummary {
+  id: string;
+  primary_condition: string | null;
+  confidence_score: number | null;
+  created_at: string;
+}
 
 function toTitleCase(s: string): string {
   return s.replace(/[_-]+/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 }
-
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export default async function HistoryPage() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+export default function HistoryPage() {
+  const [analyses, setAnalyses] = useState<AnalysisSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-  const { data: analyses } = await supabase
-    .from("analysis_results")
-    .select("id, primary_condition, confidence_score, created_at")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+  // Fetch through the backend (service role) so results show regardless of RLS.
+  useEffect(() => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { window.location.href = "/login"; return; }
+      try {
+        const res = await fetch(`${apiUrl}/history`, { headers: { Authorization: `Bearer ${session.access_token}` } });
+        const data = await res.json();
+        setAnalyses(Array.isArray(data) ? data : []);
+      } catch { setAnalyses([]); }
+      finally { setLoading(false); }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "linear-gradient(135deg, #EDD9C0 0%, #E8C9A0 40%, #F0D5C0 100%)" }}>
       <AppSidebar />
 
       <main className="flex-1 overflow-y-auto relative">
-        {/* Blobs */}
         <div className="fixed inset-0 pointer-events-none" aria-hidden>
           <div className="animate-float-blob absolute" style={{
             width: "600px", height: "600px", borderRadius: "50%", top: "-100px", right: "-100px",
@@ -44,7 +59,7 @@ export default async function HistoryPage() {
           <div className="divider mb-4" />
           <h1 className="font-display text-[2.5rem]" style={{ color: "var(--text)" }}>ANALYSIS HISTORY</h1>
           <p className="text-sm mt-2" style={{ color: "var(--text-mute)" }}>
-            {analyses?.length ?? 0} total {(analyses?.length ?? 0) === 1 ? "analysis" : "analyses"}
+            {loading ? "Loading…" : `${analyses.length} total ${analyses.length === 1 ? "analysis" : "analyses"}`}
           </p>
           <p className="text-xs mt-3 leading-relaxed max-w-md" style={{ color: "var(--text-mute)" }}>
             Your photos are deleted right after analysis — never stored. We keep only your results: the
@@ -52,7 +67,12 @@ export default async function HistoryPage() {
           </p>
         </div>
 
-        {!analyses || analyses.length === 0 ? (
+        {loading ? (
+          <div className="glass-card p-16 text-center">
+            <div className="w-10 h-10 rounded-full mx-auto border-2 animate-spin"
+              style={{ borderColor: "rgba(201,150,62,0.2)", borderTopColor: "var(--gold)" }} />
+          </div>
+        ) : analyses.length === 0 ? (
           <div className="glass-card p-16 text-center">
             <div className="w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center"
               style={{ background: "rgba(201,150,62,0.1)" }}>
@@ -71,7 +91,7 @@ export default async function HistoryPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {analyses.map((a, i) => (
+            {analyses.map(a => (
               <Link key={a.id} href={`/history/${a.id}`}
                 className="flex items-center justify-between glass-card px-6 py-5 hover:scale-[1.01] transition-transform group"
                 style={{ borderRadius: "18px" }}>
@@ -94,7 +114,7 @@ export default async function HistoryPage() {
                   {a.confidence_score !== null && (
                     <div className="text-right">
                       <div className="text-base font-semibold tabular-nums" style={{ color: "var(--gold)" }}>
-                        {Math.round(a.confidence_score * 100)}%
+                        {Math.round((a.confidence_score ?? 0) * 100)}%
                       </div>
                       <div className="text-xs" style={{ color: "var(--text-mute)" }}>confidence</div>
                     </div>

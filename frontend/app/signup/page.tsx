@@ -26,7 +26,9 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [role, setRole] = useState<'user' | 'dermatologist'>('user');
   const [error, setError] = useState<string | null>(null);
+  const [emailTaken, setEmailTaken] = useState(false);
   const [issues, setIssues] = useState<string[]>([]);
   const [success, setSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,8 +55,9 @@ export default function SignupPage() {
     if (problems.length) { setIssues(problems); return; }
 
     setIsSubmitting(true);
-    const { error } = await signUp(email, password, username.trim());
-    if (error) { setIssues([error]); setIsSubmitting(false); }
+    const { error } = await signUp(email, password, username.trim(), role);
+    if (error === 'EMAIL_ALREADY_REGISTERED') { setEmailTaken(true); setIsSubmitting(false); }
+    else if (error) { setIssues([error]); setIsSubmitting(false); }
     else setSuccess(true);
   };
 
@@ -89,6 +92,32 @@ export default function SignupPage() {
             </ul>
             <button onClick={() => setIssues([])} className="btn-gold w-full py-3 text-sm font-semibold">
               Got it
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Email already registered → nudge to log in */}
+      {emailTaken && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 animate-fade-up"
+          style={{ background: "rgba(42,31,20,0.35)", backdropFilter: "blur(3px)" }}
+          onClick={() => setEmailTaken(false)}>
+          <div className="glass-card p-7 max-w-sm w-full text-center" onClick={e => e.stopPropagation()}
+            style={{ background: "rgba(255,255,255,0.9)" }}>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"
+              style={{ background: "rgba(201,150,62,0.12)" }}>
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M3 6l8 5 8-5" stroke="#C9963E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <rect x="3" y="4" width="16" height="14" rx="2" stroke="#C9963E" strokeWidth="1.5" />
+              </svg>
+            </div>
+            <h3 className="font-semibold text-base mb-2" style={{ color: "var(--text)" }}>This email is already registered</h3>
+            <p className="text-sm mb-5" style={{ color: "var(--text-dim)" }}>
+              An account with <strong>{email}</strong> already exists. Please log in instead.
+            </p>
+            <Link href="/login" className="btn-gold w-full py-3 text-sm font-semibold inline-block">Go to Sign In</Link>
+            <button onClick={() => setEmailTaken(false)} className="w-full py-2.5 mt-2 text-xs" style={{ color: "var(--text-mute)" }}>
+              Use a different email
             </button>
           </div>
         </div>
@@ -137,6 +166,24 @@ export default function SignupPage() {
                 </div>
               )}
               <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium mb-2" style={{ color: "var(--text-dim)" }}>I am a</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { key: 'user', label: 'Common user', desc: 'Scan & track my skin' },
+                      { key: 'dermatologist', label: 'Dermatologist', desc: 'Clinician tools & 3D' },
+                    ] as const).map(opt => (
+                      <button type="button" key={opt.key} onClick={() => setRole(opt.key)}
+                        className="text-left px-3 py-2.5 rounded-xl transition-all"
+                        style={role === opt.key
+                          ? { background: "rgba(201,150,62,0.12)", border: "1px solid var(--gold)", color: "var(--text)" }
+                          : { background: "rgba(255,255,255,0.4)", border: "1px solid rgba(255,255,255,0.5)", color: "var(--text-dim)" }}>
+                        <div className="text-sm font-semibold">{opt.label}</div>
+                        <div className="text-xs mt-0.5" style={{ color: "var(--text-mute)" }}>{opt.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div>
                   <label className="block text-xs font-medium mb-2" style={{ color: "var(--text-dim)" }}>Username</label>
                   <input type="text" value={username} onChange={e => setUsername(e.target.value)} required

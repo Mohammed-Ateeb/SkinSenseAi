@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { isDermatologist } from "@/lib/role";
 import AppSidebar from "@/components/AppSidebar";
 import TwinStage from "@/components/TwinStage";
 import { type TwinSnapshot } from "@/components/TwinViewer";
@@ -35,6 +36,8 @@ export default async function TwinPage() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  // 3D twin is a dermatologist-only view; normal users use the 2D capture flow.
+  if (!isDermatologist(user)) redirect("/analyze");
 
   let twin: TwinRow | null = null;
   try {

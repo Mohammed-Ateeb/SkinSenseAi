@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { isDermatologist } from "@/lib/role";
 import AppShell from "@/components/AppShell";
 
 interface Score { condition: string; confidence: number; }
@@ -28,6 +29,8 @@ export default async function DermPage() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  // Clinician view is dermatologist-only.
+  if (!isDermatologist(user)) redirect("/dashboard");
 
   const { data } = await supabase
     .from("analysis_results")

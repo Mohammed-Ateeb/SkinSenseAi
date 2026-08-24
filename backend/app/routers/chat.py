@@ -4,7 +4,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from app.auth import get_current_user, CurrentUser
 from app.services.supabase_client import get_supabase
-from app.services import groq_service
+from app.services import groq_service, product_catalog
 from app.rag.retriever import RagRetriever
 from app.guardrail.guardrail import validate
 
@@ -46,10 +46,26 @@ async def chat(body: ChatRequest, user: CurrentUser = Depends(get_current_user))
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Chat model error: {e}")
 
-    # validate() uses keyword-only arg product_names (after *)
+    # Guard: never surface an empty answer (which would collapse to a bare
+    # disclaimer). Fall back to a helpful line instead.
+    if not response_text or not response_text.strip():
+        response_text = (
+            "I couldn't generate a full answer just now — please rephrase your "
+            "question or try again in a moment."
+        )
+
+    # Whitelist from RAG, or the mock catalog when the vector store is empty.
+    whitelist = rag_context.product_whitelist or product_catalog.whitelist_names(condition)
+    # strip_hallucinated_products=False: only flag, never delete sentences (the
+    # old stripping mangled answers and left artifacts like ".g").
+    # enforce_disclaimer=False: the chat prompt already ends with a short caution
+    # when relevant; we do NOT bolt the long disclaimer onto every reply — the
+    # user asked for answers, not a disclaimer wall.
     validation = validate(
         response_text,
-        product_names=rag_context.product_whitelist,
+        product_names=whitelist,
+        strip_hallucinated_products=False,
+        enforce_disclaimer=False,
     )
 
     return {

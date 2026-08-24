@@ -60,10 +60,11 @@ def _loaders(data_root: Path, batch_size: int, workers: int):
             transforms.Normalize(_MEAN, _STD),
         ]
     )
-    # Val transform mirrors inference preprocessing (Resize 224x224, no crop).
+    # Val transform mirrors inference preprocessing (Resize 256 -> CenterCrop 224).
     val_tf = transforms.Compose(
         [
-            transforms.Resize((224, 224)),
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
             transforms.ToTensor(),
             transforms.Normalize(_MEAN, _STD),
         ]
