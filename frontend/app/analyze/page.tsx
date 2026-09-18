@@ -54,6 +54,13 @@ export default function AnalyzePage() {
   const [stage, setStage] = useState<ResultStage>("diagnosis");
   const goToChat = () => { if (result) router.push(`/chat?about=${encodeURIComponent(result.primary_condition)}`); };
 
+  // Auth guard — this is a client component, so gate it here (like /history).
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) router.replace("/login");
+    });
+  }, [router]);
+
   // upload mode
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);

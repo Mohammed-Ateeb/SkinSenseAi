@@ -1,5 +1,6 @@
 'use client';
 import { useState, useRef, useEffect, FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import AppSidebar from '@/components/AppSidebar';
 import Markdown from '@/components/Markdown';
@@ -22,6 +23,14 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+  const router = useRouter();
+
+  // Auth guard — this is a client component, so gate it here (like /history).
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) router.replace('/login');
+    });
+  }, [router]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });

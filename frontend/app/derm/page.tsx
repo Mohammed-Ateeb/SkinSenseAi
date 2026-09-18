@@ -1,6 +1,8 @@
-import { redirect } from "next/navigation";
+'use client';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { useAuth } from "@/contexts/AuthContext";
 import { isDermatologist } from "@/lib/role";
 import AppShell from "@/components/AppShell";
 
@@ -12,7 +14,9 @@ interface DermRow {
   primary_condition: string | null;
   confidence_score: number | null;
   low_confidence: boolean | null;
-  predictions: Score[] | null;
+  // predictions is stored as a jsonb object { conditions: Score[], ... },
+  // but tolerate a bare array too for older rows.
+  predictions: Score[] | { conditions?: Score[] } | null;
   differential_diagnoses: Score[] | null;
   guardrail_flags: unknown[] | null;
   fitzpatrick_skin_tone: number | null;
@@ -24,22 +28,40 @@ function title(s: string | null | undefined) {
 function pct(n: number | null | undefined) {
   return n == null ? "—" : `${Math.round(n * 100)}%`;
 }
+function classScores(p: DermRow["predictions"]): Score[] {
+  if (Array.isArray(p)) return p;
+  return p?.conditions ?? [];
+}
 
-export default async function DermPage() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-  // Clinician view is dermatologist-only.
-  if (!isDermatologist(user)) redirect("/dashboard");
+export default function DermPage() {
+  const { user, session, loading } = useAuth();
+  const router = useRouter();
+  const [rows, setRows] = useState<DermRow[]>([]);
+  const [fetching, setFetching] = useState(true);
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-  const { data } = await supabase
-    .from("analysis_results")
-    .select("id, created_at, model_version, primary_condition, confidence_score, low_confidence, predictions, differential_diagnoses, guardrail_flags, fitzpatrick_skin_tone")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(50);
+  useEffect(() => {
+    if (loading) return;
+    if (!user) { router.replace("/login"); return; }
+    // Clinician view is dermatologist-only.
+    if (!isDermatologist(user)) { router.replace("/dashboard"); return; }
+    // Fetch through the backend (service role) so records show regardless of RLS.
+    (async () => {
+      try {
+        const res = await fetch(`${apiUrl}/history/clinical`, {
+          headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
+        });
+        const data = await res.json();
+        setRows(Array.isArray(data) ? data : []);
+      } catch {
+        setRows([]);
+      } finally {
+        setFetching(false);
+      }
+    })();
+  }, [loading, user, session, router, apiUrl]);
 
-  const rows = (data ?? []) as unknown as DermRow[];
+  const busy = loading || fetching;
 
   return (
     <AppShell>
@@ -55,7 +77,12 @@ export default async function DermPage() {
           </p>
         </div>
 
-        {rows.length === 0 ? (
+        {busy ? (
+          <div className="glass-card p-16 text-center">
+            <div className="w-10 h-10 rounded-full mx-auto border-2 animate-spin"
+              style={{ borderColor: "rgba(201,150,62,0.2)", borderTopColor: "var(--gold)" }} />
+          </div>
+        ) : rows.length === 0 ? (
           <div className="glass-card p-12 text-center">
             <h3 className="font-display text-[1.4rem] mb-2" style={{ color: "var(--text)" }}>NO ANALYSES YET</h3>
             <p className="text-sm mb-5" style={{ color: "var(--text-mute)" }}>
@@ -66,7 +93,7 @@ export default async function DermPage() {
         ) : (
           <div className="space-y-4">
             {rows.map(r => {
-              const preds = [...(r.predictions ?? [])].sort((a, b) => b.confidence - a.confidence);
+              const preds = [...classScores(r.predictions)].sort((a, b) => b.confidence - a.confidence);
               const flags = (r.guardrail_flags ?? []).length;
               return (
                 <div key={r.id} className="glass-card p-6">
