@@ -33,33 +33,41 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 logger = logging.getLogger("prepare_scin")
 
 CLASS_NAMES = [
-    "acne", "eczema", "psoriasis", "rosacea", "seborrheic_keratoses", "tinea",
-    "melasma", "vitiligo", "hyperpigmentation", "contact_dermatitis", "warts",
-    "actinic_keratosis",
+    # hormonal group
+    "hormonal_acne", "melasma", "seborrhea", "hirsutism",
+    "acanthosis_nigricans", "hormonal_hyperpigmentation",
+    # seasonal group
+    "xerosis", "eczema_flare", "sunburn", "miliaria",
+    "fungal_infection", "chapped_lips",
 ]
 
 # SCIN condition-name substrings -> our class (first match wins; specific first).
 _MAP: list[tuple[str, str]] = [
-    ("actinic keratos", "actinic_keratosis"),
-    ("seborrheic keratos", "seborrheic_keratoses"),
-    ("sk/isk", "seborrheic_keratoses"),
-    ("allergic contact", "contact_dermatitis"),
-    ("irritant contact", "contact_dermatitis"),
-    ("contact dermatitis", "contact_dermatitis"),
-    ("post-inflammatory hyper", "hyperpigmentation"),
-    ("postinflammatory hyper", "hyperpigmentation"),
-    ("hyperpigmentation", "hyperpigmentation"),
+    # --- hormonal ---------------------------------------------------------
+    ("acanthosis nigricans", "acanthosis_nigricans"),
     ("melasma", "melasma"),
-    ("vitiligo", "vitiligo"),
-    ("psoriasis", "psoriasis"),
-    ("rosacea", "rosacea"),
-    ("verruca", "warts"),
-    ("wart", "warts"),
-    ("tinea", "tinea"),
-    ("dermatophyt", "tinea"),
-    ("atopic dermatitis", "eczema"),
-    ("eczema", "eczema"),
-    ("acne", "acne"),
+    ("hirsut", "hirsutism"),
+    ("hypertrich", "hirsutism"),
+    ("seborrheic dermatitis", "seborrhea"),
+    ("post-inflammatory hyper", "hormonal_hyperpigmentation"),
+    ("postinflammatory hyper", "hormonal_hyperpigmentation"),
+    ("hyperpigmentation", "hormonal_hyperpigmentation"),
+    ("acne", "hormonal_acne"),
+    # --- seasonal ---------------------------------------------------------
+    ("miliaria", "miliaria"),
+    ("prickly heat", "miliaria"),
+    ("sunburn", "sunburn"),
+    ("photodermatitis", "sunburn"),
+    ("polymorphous light", "sunburn"),
+    ("cheilitis", "chapped_lips"),
+    ("xerosis", "xerosis"),
+    ("asteatotic", "xerosis"),
+    ("tinea", "fungal_infection"),
+    ("dermatophyt", "fungal_infection"),
+    ("candid", "fungal_infection"),
+    ("pityriasis versicolor", "fungal_infection"),
+    ("atopic dermatitis", "eczema_flare"),
+    ("eczema", "eczema_flare"),
 ]
 
 _BUCKET = "gs://dx-scin-public-data"

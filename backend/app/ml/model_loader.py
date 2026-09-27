@@ -15,20 +15,31 @@ from torchvision import models
 
 logger = logging.getLogger(__name__)
 
-CLASS_NAMES: list[str] = [
-    "acne",
-    "eczema",
-    "psoriasis",
-    "rosacea",
-    "seborrheic_keratoses",
-    "tinea",
-    "melasma",
-    "vitiligo",
-    "hyperpigmentation",
-    "contact_dermatitis",
-    "warts",
-    "actinic_keratosis",
+# The 12 conditions the model classifies, split into two clinical groups.
+# Order here IS the model's output order — training and inference both derive
+# from this list, so never reorder it without retraining.
+#
+# The groups matter at inference: the intake questionnaire produces a prior over
+# {hormonal, seasonal} (see context_rules.py) which reweights these logits.
+HORMONAL_CLASSES: list[str] = [
+    "hormonal_acne",              # pimples on jawline, chin, lower face
+    "melasma",                    # dark/brown patches
+    "seborrhea",                  # excessive oiliness / increased sebum
+    "hirsutism",                  # excessive facial/body hair
+    "acanthosis_nigricans",       # dark, thickened, velvety skin in folds
+    "hormonal_hyperpigmentation", # uneven pigmentation from hormonal change
 ]
+
+SEASONAL_CLASSES: list[str] = [
+    "xerosis",                    # dry skin, cold/dry weather
+    "eczema_flare",               # seasonal itching, dryness, inflammation
+    "sunburn",                    # excessive UV exposure
+    "miliaria",                   # heat rash, sweating and heat
+    "fungal_infection",           # more common in hot, humid conditions
+    "chapped_lips",               # cracking from cold, dry or windy weather
+]
+
+CLASS_NAMES: list[str] = HORMONAL_CLASSES + SEASONAL_CLASSES
 
 _TEMPERATURE_DEFAULT = float(os.getenv("TEMPERATURE", "1.5"))
 
@@ -139,10 +150,21 @@ def load_model(
                 explicit_temp = float(obj["temperature"])
             ckpt_classes = obj.get("class_names")
             if ckpt_classes and list(ckpt_classes) != CLASS_NAMES:
-                logger.warning(
-                    "Checkpoint class_names differ from CLASS_NAMES; serving uses "
-                    "CLASS_NAMES order. Retrain with matching classes to avoid mislabels."
+                # HARD FAIL. A checkpoint from the old taxonomy has the same
+                # number of classes as the new one, so strict=True would load
+                # happily and then serve every prediction under the wrong label.
+                # Refuse rather than mislabel someone's skin condition.
+                msg = (
+                    "Checkpoint was trained on a DIFFERENT class list than "
+                    "CLASS_NAMES — serving it would mislabel every prediction.\n"
+                    f"  checkpoint: {list(ckpt_classes)}\n"
+                    f"  expected:   {CLASS_NAMES}\n"
+                    "Retrain on the current taxonomy, or set "
+                    "ALLOW_CLASS_MISMATCH=true to override (unsafe)."
                 )
+                if os.getenv("ALLOW_CLASS_MISMATCH", "false").lower() != "true":
+                    raise ValueError(msg)
+                logger.warning("ALLOW_CLASS_MISMATCH set — %s", msg)
         else:
             state = obj  # bare state_dict — its own temperature param is authoritative
 

@@ -16,6 +16,7 @@ import torch.nn.functional as F
 from .model_loader import load_model, get_class_names, TemperatureScaler
 from .preprocessing import preprocess_bytes
 from .gradcam import generate_gradcam
+from .context_rules import apply_context_prior, explain as explain_context
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +36,14 @@ class ConditionScore:
 class PredictionResult:
     primary_condition: str
     confidence_score: float
-    predictions: list[ConditionScore]       # all 6 classes, sorted descending
+    predictions: list[ConditionScore]       # all 12 classes, sorted descending
     differential_diagnoses: list[ConditionScore]  # top-3 after primary
     confidence_threshold_met: bool
     low_confidence_flag: bool
+    # Axis B — what the intake questionnaire contributed. Empty when no answers
+    # were given, in which case the scores above are the raw CNN output.
+    context: dict | None = None
+    context_explanation: str = ""
 
 
 class InferenceEngine:
@@ -56,12 +61,18 @@ class InferenceEngine:
         return cls(model=model, device=device)
 
     @torch.inference_mode()
-    def predict(self, image_bytes: bytes) -> PredictionResult:
+    def predict(
+        self, image_bytes: bytes, answers: dict | None = None
+    ) -> PredictionResult:
         """
         Run full inference pipeline on raw image bytes.
 
         Args:
             image_bytes: raw bytes of a JPEG/PNG image.
+            answers:     optional intake-questionnaire answers. When given, the
+                         hormonal/seasonal prior they imply reweights the CNN's
+                         probabilities (Axis B). Omitted or empty -> raw CNN
+                         output, unchanged.
 
         Returns:
             PredictionResult with calibrated softmax probabilities,
@@ -70,12 +81,20 @@ class InferenceEngine:
         tensor = preprocess_bytes(image_bytes).to(self._device)
 
         # Forward pass through TemperatureScaler -> calibrated logits
-        logits = self._model(tensor)                      # (1, 6)
-        probs = F.softmax(logits, dim=-1).squeeze(0)      # (6,)
+        logits = self._model(tensor)                       # (1, n_classes)
+        probs = F.softmax(logits, dim=-1).squeeze(0)       # (n_classes,)
+
+        # Axis A: the image's own verdict.
+        class_probs = {
+            name: float(prob) for name, prob in zip(self._class_names, probs)
+        }
+
+        # Axis B: reweight by the questionnaire prior (no-op without answers).
+        adjusted, ctx = apply_context_prior(class_probs, answers)
 
         scores = [
-            ConditionScore(condition=name, confidence=round(float(prob), 4))
-            for name, prob in zip(self._class_names, probs)
+            ConditionScore(condition=name, confidence=round(value, 4))
+            for name, value in adjusted.items()
         ]
         scores.sort(key=lambda s: s.confidence, reverse=True)
 
@@ -89,6 +108,8 @@ class InferenceEngine:
             differential_diagnoses=differentials,
             confidence_threshold_met=primary.confidence >= _CONFIDENCE_THRESHOLD,
             low_confidence_flag=primary.confidence < _LOW_CONFIDENCE_THRESHOLD,
+            context=ctx.as_dict(),
+            context_explanation=explain_context(ctx),
         )
 
     def explain(self, image_bytes: bytes, condition: str) -> str | None:

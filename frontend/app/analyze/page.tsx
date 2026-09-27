@@ -7,6 +7,7 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import AppShell from "@/components/AppShell";
 import Markdown from "@/components/Markdown";
+import IntakeForm, { type Answers } from "@/components/IntakeForm";
 
 // Guided reveal stages after analysis completes
 type ResultStage = "diagnosis" | "products" | "chat";
@@ -48,6 +49,8 @@ export default function AnalyzePage() {
   // absent/blocked camera was the "black screen"); webcam is now opt-in.
   const [mode, setMode] = useState<"webcam" | "upload">("upload");
   const [fitzpatrick, setFitzpatrick] = useState<number | null>(null);
+  // Axis B - what the user tells us alongside the photo.
+  const [answers, setAnswers] = useState<Answers>({});
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [globalStep, setGlobalStep] = useState<"idle" | "uploading" | "analyzing" | "results">("idle");
@@ -234,7 +237,7 @@ export default function AnalyzePage() {
       const analyzeRes = await fetch(`${apiUrl}/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ image_id, fitzpatrick_skin_tone: fitzpatrick }),
+        body: JSON.stringify({ image_id, fitzpatrick_skin_tone: fitzpatrick, questionnaire: answers }),
       });
       if (!analyzeRes.ok) throw new Error("Analysis failed");
       setResult(await analyzeRes.json());
@@ -288,7 +291,7 @@ export default function AnalyzePage() {
       const analyzeRes = await fetch(`${apiUrl}/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ image_id, fitzpatrick_skin_tone: fitzpatrick }),
+        body: JSON.stringify({ image_id, fitzpatrick_skin_tone: fitzpatrick, questionnaire: answers }),
       });
       if (!analyzeRes.ok) throw new Error("Analysis failed");
       setResult(await analyzeRes.json());
@@ -359,10 +362,35 @@ export default function AnalyzePage() {
                 </div>
               </div>
 
-              {/* AI Focus Map (Grad-CAM) removed: the classifier is trained on
-                  cropped lesion images, so its attention on full-face selfies is
-                  unreliable (it fixated on the eye). Re-enable once the model is
-                  retrained with face-region cropping. */}
+              {/* AI Focus Map (Grad-CAM) — shows which pixels drove the call.
+                  Caveat kept visible: the classifier is trained on CROPPED lesion
+                  images, so on a full-face selfie its attention can land on the
+                  wrong feature (it used to fixate on the eye). Most reliable on a
+                  tight close-up of the affected area. */}
+              {result.gradcam && (
+                <div className="glass-card p-5 mb-4">
+                  <div className="flex items-baseline justify-between mb-3 gap-3 flex-wrap">
+                    <div className="text-xs font-medium uppercase tracking-wider" style={{ color: "var(--text-mute)" }}>
+                      AI Focus Map
+                    </div>
+                    <div className="text-xs" style={{ color: "var(--text-mute)" }}>
+                      Warmer = more influence on the result
+                    </div>
+                  </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={result.gradcam}
+                    alt={`Heatmap showing the areas that most influenced the ${result.primary_condition} prediction`}
+                    className="w-full rounded-2xl"
+                    style={{ maxHeight: "340px", objectFit: "contain", background: "rgba(42,31,20,0.04)" }}
+                  />
+                  <p className="text-xs mt-3 leading-relaxed" style={{ color: "var(--text-mute)" }}>
+                    Where the model looked when deciding. Most accurate on a tight close-up
+                    of the affected area — on a full-face photo it can focus on the wrong
+                    feature, so read it as a hint, not proof.
+                  </p>
+                </div>
+              )}
 
               {result.differential_diagnoses.length > 0 && (
                 <div className="glass-card p-5 mb-4">
@@ -687,6 +715,13 @@ export default function AnalyzePage() {
                   </button>
                 </div>
               )}
+
+              {/* Axis B — the user's own account, sent with the photo.
+                  A photo cannot show whether a flare is hormonal or seasonal;
+                  these answers reweight the model toward the right group. */}
+              <div className="mt-6">
+                <IntakeForm onChange={setAnswers} />
+              </div>
 
               {/* Fitzpatrick — shared by both modes */}
               <div className="mt-2">

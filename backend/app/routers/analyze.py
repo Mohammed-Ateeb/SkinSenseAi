@@ -49,6 +49,9 @@ class AnalyzeRequest(BaseModel):
     additional_context: str = ""
     # Phase 1 Digital Twin: optional MediaPipe FaceMesh landmarks from browser webcam scan
     landmarks: list[dict] | None = None      # [{x, y, z}] * 468 normalized coords
+    # Axis B: intake-questionnaire answers (any subset; see ml/context_rules.py).
+    # Supplies the hormonal-vs-seasonal context a photo cannot show.
+    questionnaire: dict | None = None
 
 class DifferentialDiagnosis(BaseModel):
     condition: str
@@ -65,6 +68,17 @@ class AnalyzeResponse(BaseModel):
     guardrail_flags: list[dict]
     low_confidence: bool
     gradcam: str | None = None  # base64 PNG data URI (Grad-CAM heatmap)
+
+@router.get("/questionnaire")
+async def get_questionnaire():
+    """Intake-form schema for the frontend.
+
+    Served from context_rules.QUESTIONNAIRE so the rendered form and the scoring
+    rules can never drift apart. Grouped into general / hormonal / seasonal.
+    """
+    from app.ml.context_rules import questionnaire_schema  # noqa: PLC0415
+    return questionnaire_schema()
+
 
 @router.post("", response_model=AnalyzeResponse)
 async def analyze(body: AnalyzeRequest, user: CurrentUser = Depends(get_current_user)):
@@ -86,7 +100,9 @@ async def analyze(body: AnalyzeRequest, user: CurrentUser = Depends(get_current_
 
     # 3. ML inference
     engine = InferenceEngine.from_env()
-    predict_result = engine.predict(image_bytes)
+    # The questionnaire supplies Axis B — it reweights the image's verdict
+    # toward the hormonal or seasonal group. No answers -> raw CNN output.
+    predict_result = engine.predict(image_bytes, answers=body.questionnaire)
 
     # Grad-CAM heatmap for the predicted class (best-effort; never blocks analysis)
     gradcam_overlay = engine.explain(image_bytes, predict_result.primary_condition)
@@ -177,6 +193,10 @@ async def analyze(body: AnalyzeRequest, user: CurrentUser = Depends(get_current_
         "low_confidence": predict_result.low_confidence_flag,
         "guardrail_flags": guardrail_payload,
         "fitzpatrick_skin_tone": body.fitzpatrick_skin_tone,
+        # Axis B: what the user told us, and what the rule layer concluded.
+        # Kept so History and the clinician console can show the reasoning.
+        "questionnaire": body.questionnaire,
+        "context": predict_result.context,
     }).execute()
 
     if not ar_result.data:
