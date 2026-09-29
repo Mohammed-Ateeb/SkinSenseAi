@@ -360,13 +360,6 @@ export default function AnalyzePage() {
                 </button>
               </div>
 
-              {result.low_confidence && (
-                <div className="mb-6 px-4 py-3 rounded-xl text-sm"
-                  style={{ background: "rgba(232,146,124,0.12)", color: "#B85040", border: "1px solid rgba(232,146,124,0.2)" }}>
-                  Low confidence — please consult a dermatologist for accurate diagnosis.
-                </div>
-              )}
-
                             {/* Abstention. Several classes are trained on very few images, so a
                   low-confidence call must read as "unsure", not as a diagnosis. */}
               {result.low_confidence && (

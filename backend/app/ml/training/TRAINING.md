@@ -1,77 +1,108 @@
-# Training SkinSense weights (configurable backbone, 12 classes)
+# Training SkinSense weights (12 hormonal/seasonal classes)
 
-Turns the random-init model into a real classifier. Produces a **self-describing
-checkpoint** you point `WEIGHTS_PATH` at — inference reads the architecture and
-calibrated temperature straight from the file, so no inference-code or env
-changes are needed when you switch backbones. Grad-CAM becomes meaningful the
-moment this checkpoint loads.
+Produces a **self-describing checkpoint** you point `WEIGHTS_PATH` at — inference
+reads the architecture and calibrated temperature straight from the file, so no
+code or env changes are needed when you switch backbones.
 
-## Why the first model was weak (and what changed)
+## Current model
 
-The original EfficientNet-B0 run reached only **~47% val top-1**, with several
-classes (`contact_dermatitis`, `hyperpigmentation`, `vitiligo`) collapsing to
-**0%** — their samples were absorbed by the high-density "attractor" classes
-(`actinic_keratosis`, `seborrheic_keratoses`). It was **not** acne-biased; acne
-was simply the one class it learned cleanly (93%), so it won ambiguous inputs.
-The training code, class order, and preprocessing were all correct — this is a
-data + model-capacity problem. The upgraded recipe attacks it with:
+| | |
+|---|---|
+| Architecture | ConvNeXt-Tiny |
+| Checkpoint | `skinsense_convnext_tiny.pt` |
+| **Val macro-recall** | **0.654** |
+| Temperature | 0.941 (fitted on val) |
+| Training set | ~10,360 train / ~1,370 val, after de-duplication |
+| Recipe | 30 epochs, batch 32, lr 3e-4, MixUp 0.2, balanced sampling |
 
-- **Bigger backbone** — ConvNeXt-Tiny (default) or EfficientNet-B3, more capacity
-  for fine-grained dermatology than B0. All keep 224×224 input so inference
-  preprocessing is unchanged.
-- **Class-balanced sampling** — a sqrt inverse-frequency `WeightedRandomSampler`
-  shows each class roughly equally per epoch (lifts the starved minority classes
-  without wildly oversampling the tiny ones).
-- **MixUp** — softens the attractor-class collapse and over-confidence.
-- Selection on **macro-recall**, temperature calibration (unchanged).
+Macro-recall is the metric to quote. Top-1 accuracy looks considerably better
+but is dominated by the three large classes and hides the weak ones.
 
 ## The 12 classes (order = model output order)
 
-`acne, eczema, psoriasis, rosacea, seborrheic_keratoses, tinea, melasma,
-vitiligo, hyperpigmentation, contact_dermatitis, warts, actinic_keratosis`
+Six hormonal, six seasonal. Defined once in `model_loader.py:CLASS_NAMES`;
+everything else derives from it.
 
-Defined once in `model_loader.py:CLASS_NAMES`. Everything else derives from it.
+| # | Class | Group | Train imgs | Abstention floor |
+|--:|---|---|--:|--:|
+| 0 | `hormonal_acne` | hormonal | 2,690 | 0.35 |
+| 1 | `melasma` | hormonal | 34 | 0.65 |
+| 2 | `seborrhea` | hormonal | 125 | 0.50 |
+| 3 | `hirsutism` | hormonal | 2 | 0.80 |
+| 4 | `acanthosis_nigricans` | hormonal | 69 | 0.60 |
+| 5 | `hormonal_hyperpigmentation` | hormonal | 480 | 0.45 |
+| 6 | `xerosis` | seasonal | 47 | 0.60 |
+| 7 | `eczema_flare` | seasonal | 3,365 | 0.35 |
+| 8 | `sunburn` | seasonal | 161 | 0.50 |
+| 9 | `miliaria` | seasonal | 27 | 0.65 |
+| 10 | `fungal_infection` | seasonal | 3,342 | 0.35 |
+| 11 | `chapped_lips` | seasonal | 18 | 0.65 |
 
-## The final dataset (`data/`)
+**The abstention floor is the honest part.** A single global threshold would
+treat every class as equally trustworthy, which they are not: 60% from
+`eczema_flare` (3,365 images) is evidence, 60% from `hirsutism` (2 images) is
+noise. The floors live in `inference.py:_MIN_CONFIDENCE` and describe the
+DATASET, not the conditions — revisit them whenever the counts change.
 
-The many source archives (DermNet, ACNE04, HAM10000, PAD-UFES-20, SkinDisNet,
-Skin Disease Classification, a 15-class clinical set, IMG_CLASSES, …) were
-merged, deduplicated and mapped to the 12 classes, then **extracted once** into a
-self-contained ImageFolder tree:
+## Two axes, because a photo cannot answer the question
 
-```
-data/train/<class>/*.jpg
-data/val/<class>/*.jpg
-```
+Six of these classes are hormonal and six are seasonal, and that distinction is
+largely **not visible in a photo** — hormonal acne and stress acne look
+identical. So the model is only half the system:
 
-**Current set: 24,132 images (20,692 train / 3,440 val), 11 classes**, balanced
-at ≤2,500 train / 400 val per class:
+- **Axis A — the CNN** reads the image and scores all 12 classes.
+- **Axis B — `ml/context_rules.py`** reads the user's free-text description
+  ("tiny bumps after sweating", "extra coarse hair on my chin") and reweights
+  those scores. Weights are clamped, so words re-rank a close call but never
+  overturn a confident photo. No description = exact no-op.
 
-| class | train | class | train |
-|---|--:|---|--:|
-| acne | 2500 | seborrheic_keratoses | 2500 |
-| eczema | 2500 | tinea | 2500 |
-| actinic_keratosis | 2500 | contact_dermatitis | 2500 |
-| psoriasis | 1906 | vitiligo | 1693 |
-| warts | 1519 | hyperpigmentation | 571 |
-| rosacea | 3 | melasma | 0 |
+This also carries the classes the CNN cannot learn. `hirsutism` has 2 training
+images and will never be predicted from pixels, but "excess coarse hair" is
+unambiguous in text.
 
-**`melasma` has no images and `rosacea` only 3** — they exist only in the
-URL-based Fitzpatrick17k set (most source URLs are dead). Backfill via
-`download_fitzpatrick.py`, or drop JPEGs into `data/{train,val}/<class>/`.
+## Known weaknesses (be honest about these)
 
-### How `data/` was built (record — the raw zips have been deleted)
+Five classes are trained on fewer than 50 images: `hirsutism` (2),
+`chapped_lips` (18), `miliaria` (27), `melasma` (34), `xerosis` (47). Their
+validation sets are 1-6 images, so any per-class metric for them is noise.
+They are the ceiling on macro-recall — no amount of tuning fixes 2 images.
+
+`miliaria` and `hirsutism` are absent from every free dataset we surveyed
+(SCIN, Fitzpatrick17k, DermNet, Atlas Dermatologico). They need manual
+collection.
+
+## Data sources
+
+| Source | Contributes | Script |
+|---|---|---|
+| Base merged set | acne, eczema, fungal, hyperpigmentation | `remap_base.py` |
+| Atlas Dermatologico | miliaria, xerosis, cheilitis, acanthosis, seborrhoea | `prepare_atlas.py` |
+| DermNet (23-class) | melasma, xerosis, acanthosis, seborrhoea, sunburn, hirsutism | `prepare_dermnet.py` |
+| SCIN (Google) | real consumer photos, diverse skin tones | `prepare_scin.py` |
+| Fitzpatrick17k | *images never obtained — CSV only* | `prepare_fitzpatrick.py` |
+
+De-duplication (`dedup_dataset.py`) runs last and is not optional: the merge
+introduced 1,526 duplicates including **441 train/val leaks**, which would have
+inflated the reported accuracy.
+
+## How the base set was built (historical record)
+
+The base `data/` tree predates the current taxonomy. Many source archives
+(DermNet, ACNE04, HAM10000, PAD-UFES-20, SkinDisNet, a 15-class clinical set,
+…) were merged, deduplicated and extracted into an ImageFolder tree of 24,132
+images across the OLD dermatological classes.
 
 1. `build_ultimate_manifest.py` scanned every archive and emitted
-   `dataset_manifest_ultimate.csv` (cols `source,zip,inner_zip,entry,label,
-   split,crc32,size`), deduping identical images by CRC32+size (48,314 unique
-   rows; 22,540 dupes dropped), handling nested zip-in-zip.
-2. `extract_final_dataset.py` read that manifest and wrote the capped, RGB-JPEG
-   ImageFolder tree above.
+   `dataset_manifest_ultimate.csv`, deduping by CRC32+size (48,314 unique rows;
+   22,540 dupes dropped), handling nested zip-in-zip.
+2. `extract_final_dataset.py` wrote the capped, RGB-JPEG tree.
+3. `remap_base.py` later folded four of those folders into the new taxonomy
+   (acne → hormonal_acne, eczema → eczema_flare, tinea → fungal_infection,
+   hyperpigmentation → hormonal_hyperpigmentation) and retired the rest to
+   `data/_unused/`. See the current counts in the class table above.
 
-The ~27 GB of source zips were removed after extraction. To rebuild `data/` (or
-re-extract with different caps) you must re-download the archives first — see
-`docs/DATASETS.md`.
+The ~27 GB of source zips were deleted after extraction; `data.zip` is now the
+only copy. To rebuild you must re-download the archives — see `docs/DATASETS.md`.
 
 ## Train it — `SkinSense_Train.ipynb` (recommended)
 
@@ -113,7 +144,8 @@ keyword arguments.
 
 ## Adding data for the empty classes
 
-`melasma` (0 imgs) and `rosacea` (~3) are the weakest slots. Just drop images
+`hirsutism` (2 imgs), `chapped_lips` (18), `miliaria` (27), `melasma` (34) and
+`xerosis` (47) are the weakest slots. Just drop images
 into `data/train/<class>/` and `data/val/<class>/` — the sampler, 12-logit head,
 and label remap already reserve their indices, so they start training with no
 code changes. Aim for a few hundred train images each to make them usable.
