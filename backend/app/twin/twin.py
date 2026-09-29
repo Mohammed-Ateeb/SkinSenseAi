@@ -134,15 +134,34 @@ _FLARE_THRESHOLD = 0.25
 
 # Per-condition weights for the two aggregate metrics.
 # Weights sum to ≤1; remainder treated as baseline healthy skin.
+# Keyed to the CURRENT CLASS_NAMES. These were previously keyed to the old
+# taxonomy (eczema, psoriasis, rosacea), so after the rename every lookup
+# returned 0.0 and the twin reported perfect skin for every analysis.
+#
+# How much each condition implies a COMPROMISED skin barrier.
 _BARRIER_DAMAGE_WEIGHTS: dict[str, float] = {
-    "eczema": 0.40,
-    "psoriasis": 0.30,
-    "rosacea": 0.20,
-    "seborrheic_keratoses": 0.10,
+    "sunburn": 0.45,             # acute UV injury to the barrier
+    "eczema_flare": 0.40,        # barrier disruption is definitional
+    "xerosis": 0.35,             # dry, fissured skin
+    "fungal_infection": 0.25,    # organism breaching the stratum corneum
+    "hormonal_acne": 0.20,       # follicular inflammation
+    "chapped_lips": 0.20,        # localised, but a real break
+    "seborrhea": 0.15,
+    "miliaria": 0.15,            # blocked sweat ducts
+    "acanthosis_nigricans": 0.05,
+    # melasma / hormonal_hyperpigmentation / hirsutism are pigment and hair
+    # changes — the barrier itself is intact, so they contribute nothing.
 }
+
+# How much each condition implies DEHYDRATED skin.
 _HYDRATION_DAMAGE_WEIGHTS: dict[str, float] = {
-    "eczema": 0.60,
-    "psoriasis": 0.40,
+    "xerosis": 0.65,             # dryness is the condition
+    "eczema_flare": 0.55,
+    "chapped_lips": 0.40,
+    "sunburn": 0.35,
+    "fungal_infection": 0.15,
+    "miliaria": 0.10,
+    # seborrhea is over-production of oil, not dryness — deliberately absent.
 }
 
 # Nudge applied to aggregated metrics based on user-reported chat trend.

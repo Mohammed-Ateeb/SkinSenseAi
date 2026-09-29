@@ -324,6 +324,16 @@ export default function AnalyzePage() {
     setCamError("");
   };
 
+  // The sidebar's "+ New Analysis" fires this when we are already on /analyze,
+  // where a route change would be a no-op and leave the old results on screen.
+  useEffect(() => {
+    const onNew = () => reset();
+    window.addEventListener("skinsense:new-analysis", onNew);
+    return () => window.removeEventListener("skinsense:new-analysis", onNew);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
   const isProcessing = globalStep === "uploading" || globalStep === "analyzing";
 
   return (

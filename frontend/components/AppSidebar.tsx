@@ -125,7 +125,17 @@ export default function AppSidebar() {
 
       {/* New analysis CTA */}
       <div className="px-3 pb-4">
-        <Link href="/analyze" onClick={() => setMobileOpen(false)}
+        <Link href="/analyze"
+          onClick={e => {
+            setMobileOpen(false);
+            // Already on /analyze? Next sees the same route, does not remount,
+            // and the page keeps showing the previous results — the button
+            // looks dead. Reset the page in place instead of navigating.
+            if (pathname === "/analyze") {
+              e.preventDefault();
+              window.dispatchEvent(new CustomEvent("skinsense:new-analysis"));
+            }
+          }}
           title={collapsed ? "New Analysis" : undefined}
           className="btn-gold flex items-center justify-center gap-2 w-full py-3 text-sm font-semibold">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>

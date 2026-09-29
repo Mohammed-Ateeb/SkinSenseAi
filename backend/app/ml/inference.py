@@ -25,6 +25,14 @@ _LOW_CONFIDENCE_THRESHOLD = float(os.getenv("LOW_CONFIDENCE_THRESHOLD", "0.35"))
 
 MODEL_VERSION = os.getenv("MODEL_VERSION", "efficientnet-b0-12cls-v1")
 
+# Test-time augmentation: average the prediction over a few views of the same
+# photo. Framing and mirroring are arbitrary properties the model should not
+# care about, so averaging cancels that luck out. Agreement across views is real
+# evidence, so confidence rises when the model is consistent and FALLS when the
+# views disagree — unlike simply lowering the temperature, which inflates every
+# number including the wrong ones. Costs one forward pass per view.
+_USE_TTA = os.getenv("TTA", "true").lower() == "true"
+
 
 @dataclass
 class ConditionScore:
@@ -91,9 +99,22 @@ class InferenceEngine:
         """
         tensor = preprocess_bytes(image_bytes).to(self._device)
 
-        # Forward pass through TemperatureScaler -> calibrated logits
-        logits = self._model(tensor)                       # (1, n_classes)
-        probs = F.softmax(logits, dim=-1).squeeze(0)       # (n_classes,)
+        # Forward pass through TemperatureScaler -> calibrated logits.
+        # Average the SOFTMAX (not the logits) across views: probabilities are
+        # what we want to combine, and averaging logits would let one confident
+        # view dominate the rest.
+        views = [tensor, torch.flip(tensor, dims=[3])] if _USE_TTA else [tensor]
+        if _USE_TTA:
+            # a mild zoom-in: centre 87% of the frame, resized back to 224
+            _, _, h, w = tensor.shape
+            m = int(h * 0.065)
+            crop = tensor[:, :, m:h - m, m:w - m]
+            zoomed = F.interpolate(crop, size=(h, w), mode="bilinear", align_corners=False)
+            views += [zoomed, torch.flip(zoomed, dims=[3])]
+
+        probs = torch.stack(
+            [F.softmax(self._model(v), dim=-1).squeeze(0) for v in views]
+        ).mean(dim=0)                                      # (n_classes,)
 
         # Axis A: the image's own verdict.
         class_probs = {

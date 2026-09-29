@@ -76,9 +76,61 @@ _CATALOG: dict[str, list[dict]] = {
         {"name": "EltaMD UV Clear SPF 46", "active_ingredients": ["zinc oxide"], "usage": "AM — daily, reapply; sun protection is primary"},
         {"name": "CeraVe Moisturising Cream", "active_ingredients": ["ceramides"], "usage": "AM & PM"},
     ],
+    # --- conditions introduced with the hormonal/seasonal taxonomy ----------
+    "seborrhea": [
+        {"name": "Nizoral Anti-Dandruff Shampoo", "active_ingredients": ["ketoconazole 1%"], "usage": "2-3x weekly — leave 3-5 min before rinsing"},
+        {"name": "Vanicream Z-Bar", "active_ingredients": ["zinc pyrithione 2%"], "usage": "Daily — face and affected areas"},
+        {"name": "The Ordinary Niacinamide 10% + Zinc", "active_ingredients": ["niacinamide", "zinc"], "usage": "AM — helps regulate oil"},
+        {"name": "La Roche-Posay Effaclar Mat Moisturiser", "active_ingredients": ["sebo-regulating complex"], "usage": "AM & PM — oil-free"},
+    ],
+    "hirsutism": [
+        {"name": "Vanicream Gentle Facial Cleanser", "active_ingredients": ["fragrance-free surfactants"], "usage": "AM & PM — avoid irritating the area"},
+        {"name": "Tend Skin Solution", "active_ingredients": ["isopropyl alcohol", "acetylsalicylic acid"], "usage": "After hair removal — reduces bumps"},
+        {"name": "CeraVe Moisturising Cream", "active_ingredients": ["ceramides", "hyaluronic acid"], "usage": "After hair removal — restores the barrier"},
+    ],
+    "acanthosis_nigricans": [
+        {"name": "CeraVe SA Smoothing Cream", "active_ingredients": ["salicylic acid", "urea"], "usage": "PM — softens thickened skin"},
+        {"name": "Eucerin Advanced Repair Cream", "active_ingredients": ["urea 10%", "ceramides"], "usage": "AM & PM — on folds and neck"},
+        {"name": "The Ordinary Glycolic Acid 7% Toning Solution", "active_ingredients": ["glycolic acid 7%"], "usage": "PM, 2-3x weekly — body only"},
+    ],
+    "xerosis": [
+        {"name": "CeraVe Moisturising Cream", "active_ingredients": ["ceramides", "hyaluronic acid"], "usage": "AM & PM — apply to damp skin"},
+        {"name": "Eucerin Advanced Repair Cream", "active_ingredients": ["urea 10%", "ceramides"], "usage": "PM — thick layer on dry areas"},
+        {"name": "Vanicream Gentle Body Wash", "active_ingredients": ["fragrance-free surfactants"], "usage": "Lukewarm showers — avoid hot water"},
+        {"name": "Aquaphor Healing Ointment", "active_ingredients": ["petrolatum 41%"], "usage": "PM — seal in moisture on cracked areas"},
+    ],
+    "sunburn": [
+        {"name": "Aloe Vera Gel (99% pure)", "active_ingredients": ["aloe barbadensis"], "usage": "Reapply freely — cools and soothes"},
+        {"name": "Cortizone-10 (OTC hydrocortisone 1%)", "active_ingredients": ["hydrocortisone 1%"], "usage": "Thin layer, max 7 days — reduces inflammation"},
+        {"name": "CeraVe Moisturising Cream", "active_ingredients": ["ceramides", "hyaluronic acid"], "usage": "AM & PM — supports barrier recovery"},
+        {"name": "EltaMD UV Clear SPF 46", "active_ingredients": ["zinc oxide", "niacinamide"], "usage": "Once healed — prevents recurrence"},
+    ],
+    "miliaria": [
+        {"name": "Calamine Lotion", "active_ingredients": ["calamine", "zinc oxide"], "usage": "As needed — soothes itch and dries the rash"},
+        {"name": "Vanicream Gentle Body Wash", "active_ingredients": ["fragrance-free surfactants"], "usage": "Cool showers — rinse sweat promptly"},
+        {"name": "Gold Bond Medicated Powder", "active_ingredients": ["menthol", "zinc oxide"], "usage": "Keeps skin folds dry"},
+    ],
+    "chapped_lips": [
+        {"name": "Aquaphor Lip Repair", "active_ingredients": ["petrolatum", "shea butter"], "usage": "Throughout the day and before bed"},
+        {"name": "Vaseline Original Lip Therapy", "active_ingredients": ["petrolatum 100%"], "usage": "Seals moisture — reapply often"},
+        {"name": "Sun Bum SPF 30 Lip Balm", "active_ingredients": ["octinoxate", "SPF 30"], "usage": "AM — lips burn easily in cold wind and sun"},
+    ],
 }
 
 # Generic fallback if the condition isn't in the catalog.
+
+# The taxonomy was renamed (acne -> hormonal_acne, tinea -> fungal_infection,
+# ...). The catalogue entries are still correct for those conditions, so map the
+# new names onto them rather than duplicating every product list. Without this
+# every renamed class silently fell through to _DEFAULT — a fungal infection
+# was being told to use moisturiser instead of the antifungals right here.
+_ALIASES: dict[str, str] = {
+    "hormonal_acne": "acne",
+    "eczema_flare": "eczema",
+    "fungal_infection": "tinea",
+    "hormonal_hyperpigmentation": "hyperpigmentation",
+}
+
 _DEFAULT = [
     {"name": "CeraVe Hydrating Cleanser", "active_ingredients": ["ceramides"], "usage": "AM & PM — gentle cleansing"},
     {"name": "CeraVe Moisturising Cream", "active_ingredients": ["ceramides", "hyaluronic acid"], "usage": "AM & PM"},
@@ -89,6 +141,7 @@ _DEFAULT = [
 def recommend(condition: str, limit: int = 5) -> list[dict]:
     """Return recommended-product dicts for a condition (analyze-router shape)."""
     key = (condition or "").strip().lower()
+    key = _ALIASES.get(key, key)
     items = _CATALOG.get(key, _DEFAULT)[:limit]
     out: list[dict] = []
     for i, p in enumerate(items):
