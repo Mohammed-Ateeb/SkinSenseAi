@@ -2,6 +2,7 @@
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import PasswordInput from "@/components/PasswordInput";
 
 export default function LoginPage() {
   const { signIn } = useAuth();
@@ -78,14 +79,19 @@ export default function LoginPage() {
                 <label className="text-xs font-medium" style={{ color: "var(--text-dim)" }}>Password</label>
                 <Link href="/forgot-password" className="text-xs cursor-pointer hover:underline" style={{ color: "var(--gold)" }}>Forgot password?</Link>
               </div>
-              <div className="relative">
-                <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <rect x="2.5" y="7" width="11" height="8" rx="1.5" stroke="#A89080" strokeWidth="1.2" />
-                  <path d="M5 7V5a3 3 0 016 0v2" stroke="#A89080" strokeWidth="1.2" strokeLinecap="round" />
-                </svg>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
-                  placeholder="Enter your password" className="glass-input w-full pl-10 pr-4 py-3.5 text-sm" />
-              </div>
+              <PasswordInput
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                autoComplete="current-password"
+                className="glass-input w-full pl-10 py-3.5 text-sm"
+                leftIcon={
+                  <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <rect x="2.5" y="7" width="11" height="8" rx="1.5" stroke="#A89080" strokeWidth="1.2" />
+                    <path d="M5 7V5a3 3 0 016 0v2" stroke="#A89080" strokeWidth="1.2" strokeLinecap="round" />
+                  </svg>
+                }
+              />
             </div>
             <button type="submit" disabled={isSubmitting}
               className="btn-gold w-full py-4 text-sm mt-2 flex items-center justify-center gap-2">

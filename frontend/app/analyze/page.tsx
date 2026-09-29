@@ -24,6 +24,13 @@ interface AnalyzeResponse {
   guardrail_flags: unknown[];
   low_confidence: boolean;
   gradcam?: string | null;
+  context?: {
+    matched?: string[];
+    supported?: string[];
+    leaning?: string;
+    used_text?: boolean;
+  } | null;
+  context_explanation?: string;
 }
 
 const FITZPATRICK_COLORS = ["#F6D6B0", "#E8C490", "#C68642", "#8D5524", "#5A3310", "#2A1506"];
@@ -344,6 +351,29 @@ export default function AnalyzePage() {
                 </div>
               )}
 
+                            {/* Abstention. Several classes are trained on very few images, so a
+                  low-confidence call must read as "unsure", not as a diagnosis. */}
+              {result.low_confidence && (
+                <div className="glass-card p-5 mb-4" style={{ borderLeft: "3px solid #C9963E" }}>
+                  <div className="flex items-start gap-3">
+                    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" className="flex-shrink-0 mt-0.5" aria-hidden>
+                      <circle cx="10" cy="10" r="8" stroke="#C9963E" strokeWidth="1.4" />
+                      <path d="M10 6v5" stroke="#C9963E" strokeWidth="1.6" strokeLinecap="round" />
+                      <circle cx="10" cy="14" r="0.9" fill="#C9963E" />
+                    </svg>
+                    <div>
+                      <div className="text-sm font-semibold mb-1" style={{ color: "var(--text)" }}>
+                        Not confident enough to call this
+                      </div>
+                      <p className="text-xs leading-relaxed" style={{ color: "var(--text-dim)" }}>
+                        The result below is the closest match, but the model is unsure. Treat it as a
+                        starting point only — please see a dermatologist rather than acting on it.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="glass-card p-6 mb-4" style={{ background: "rgba(201,150,62,0.04)" }}>
                 <div className="text-xs font-medium tracking-wider uppercase mb-4" style={{ color: "var(--text-mute)" }}>Primary Detection</div>
                 <div className="flex items-end justify-between gap-4">
@@ -388,6 +418,33 @@ export default function AnalyzePage() {
                     Where the model looked when deciding. Most accurate on a tight close-up
                     of the affected area — on a full-face photo it can focus on the wrong
                     feature, so read it as a hint, not proof.
+                  </p>
+                </div>
+              )}
+
+
+              {/* Axis B — what the user's own description contributed. Shown so the
+                  result explains itself instead of just asserting an answer. */}
+              {result.context_explanation && result.context?.used_text && (
+                <div className="glass-card p-5 mb-4">
+                  <div className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: "var(--text-mute)" }}>
+                    Why this result
+                  </div>
+                  <p className="text-sm leading-relaxed mb-3" style={{ color: "var(--text)" }}>
+                    {result.context_explanation}
+                  </p>
+                  {!!result.context?.matched?.length && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {result.context.matched.map(cue => (
+                        <span key={cue} className="text-xs px-2.5 py-1 rounded-full"
+                          style={{ background: "rgba(201,150,62,0.12)", color: "var(--gold)" }}>
+                          {cue}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-xs mt-3" style={{ color: "var(--text-mute)" }}>
+                    Your description adjusted the ranking — it never overrides a confident photo.
                   </p>
                 </div>
               )}

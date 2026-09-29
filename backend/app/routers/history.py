@@ -26,7 +26,7 @@ async def list_clinical(user: CurrentUser = Depends(get_current_user)):
     result = supabase.table("analysis_results").select(
         "id, created_at, model_version, primary_condition, confidence_score, "
         "low_confidence, predictions, differential_diagnoses, guardrail_flags, "
-        "fitzpatrick_skin_tone"
+        "fitzpatrick_skin_tone, questionnaire, context"
     ).eq("user_id", user.id).order("created_at", desc=True).limit(50).execute()
     return result.data or []
 

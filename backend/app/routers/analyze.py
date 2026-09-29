@@ -68,6 +68,9 @@ class AnalyzeResponse(BaseModel):
     guardrail_flags: list[dict]
     low_confidence: bool
     gradcam: str | None = None  # base64 PNG data URI (Grad-CAM heatmap)
+    # Axis B: what the user's description contributed, and why.
+    context: dict | None = None
+    context_explanation: str = ""
 
 @router.get("/questionnaire")
 async def get_questionnaire():
@@ -260,4 +263,6 @@ async def analyze(body: AnalyzeRequest, user: CurrentUser = Depends(get_current_
         guardrail_flags=guardrail_payload,
         low_confidence=predict_result.low_confidence_flag,
         gradcam=gradcam_overlay,
+        context=predict_result.context,
+        context_explanation=predict_result.context_explanation,
     )

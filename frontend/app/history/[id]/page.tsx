@@ -22,6 +22,8 @@ interface AnalysisRow {
   differential_diagnoses: ConditionScore[] | null;
   llm_explanation: string | null;
   recommended_products: Product[] | null;
+  questionnaire: { symptom_text?: string; body_site?: string; duration?: string; feels_like?: string[] } | null;
+  context: { matched?: string[]; supported?: string[]; leaning?: string; used_text?: boolean } | null;
   created_at: string;
   low_confidence: boolean | null;
 }
@@ -129,6 +131,49 @@ export default function HistoryDetailPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Axis B — the description the user gave, and what it contributed. */}
+          {(analysis.questionnaire?.symptom_text || !!analysis.context?.matched?.length) && (
+            <div className="glass-card p-6 mb-4">
+              <div className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: "var(--text-mute)" }}>
+                What you described
+              </div>
+              {analysis.questionnaire?.symptom_text && (
+                <p className="text-sm leading-relaxed mb-3 italic" style={{ color: "var(--text)" }}>
+                  &ldquo;{analysis.questionnaire.symptom_text}&rdquo;
+                </p>
+              )}
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {analysis.questionnaire?.body_site && (
+                  <span className="text-xs px-2.5 py-1 rounded-full"
+                    style={{ background: "rgba(42,31,20,0.06)", color: "var(--text-dim)" }}>
+                    {analysis.questionnaire.body_site.replace(/_/g, " ")}
+                  </span>
+                )}
+                {(analysis.questionnaire?.feels_like ?? []).map(f => (
+                  <span key={f} className="text-xs px-2.5 py-1 rounded-full"
+                    style={{ background: "rgba(42,31,20,0.06)", color: "var(--text-dim)" }}>
+                    {f.replace(/_/g, " ")}
+                  </span>
+                ))}
+              </div>
+              {!!analysis.context?.matched?.length && (
+                <>
+                  <div className="text-xs mt-3 mb-1.5" style={{ color: "var(--text-mute)" }}>
+                    Cues this contributed:
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {analysis.context.matched.map(c => (
+                      <span key={c} className="text-xs px-2.5 py-1 rounded-full"
+                        style={{ background: "rgba(201,150,62,0.12)", color: "var(--gold)" }}>
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
 

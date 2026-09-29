@@ -20,6 +20,8 @@ interface DermRow {
   differential_diagnoses: Score[] | null;
   guardrail_flags: unknown[] | null;
   fitzpatrick_skin_tone: number | null;
+  questionnaire: { symptom_text?: string; body_site?: string; duration?: string; feels_like?: string[] } | null;
+  context: { matched?: string[]; supported?: string[]; leaning?: string; used_text?: boolean } | null;
 }
 
 function title(s: string | null | undefined) {
@@ -123,7 +125,59 @@ export default function DermPage() {
                     </div>
                   </div>
 
-                  {/* Full class-probability distribution */}
+                  {/* What the patient reported — Axis B. A photo cannot carry
+                      symptoms, so the clinician needs the history beside the
+                      probabilities to judge whether the model's call is plausible. */}
+                  {(r.questionnaire?.symptom_text || !!r.context?.matched?.length) && (
+                    <div className="mb-5 p-4 rounded-xl" style={{ background: "rgba(42,31,20,0.035)" }}>
+                      <div className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: "var(--text-mute)" }}>
+                        Patient report
+                      </div>
+                      {r.questionnaire?.symptom_text && (
+                        <p className="text-sm italic leading-relaxed mb-2" style={{ color: "var(--text)" }}>
+                          &ldquo;{r.questionnaire.symptom_text}&rdquo;
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-1.5">
+                        {r.questionnaire?.body_site && (
+                          <span className="text-xs px-2 py-0.5 rounded-full"
+                            style={{ background: "rgba(42,31,20,0.07)", color: "var(--text-dim)" }}>
+                            site: {r.questionnaire.body_site.replace(/_/g, " ")}
+                          </span>
+                        )}
+                        {r.questionnaire?.duration && (
+                          <span className="text-xs px-2 py-0.5 rounded-full"
+                            style={{ background: "rgba(42,31,20,0.07)", color: "var(--text-dim)" }}>
+                            {r.questionnaire.duration.replace(/_/g, " ")}
+                          </span>
+                        )}
+                        {(r.questionnaire?.feels_like ?? []).map(f => (
+                          <span key={f} className="text-xs px-2 py-0.5 rounded-full"
+                            style={{ background: "rgba(42,31,20,0.07)", color: "var(--text-dim)" }}>
+                            {f.replace(/_/g, " ")}
+                          </span>
+                        ))}
+                      </div>
+                      {!!r.context?.matched?.length && (
+                        <div className="mt-3">
+                          <span className="text-xs" style={{ color: "var(--text-mute)" }}>
+                            Reweighted by:{" "}
+                          </span>
+                          <span className="text-xs" style={{ color: "var(--gold)" }}>
+                            {r.context.matched.join(", ")}
+                          </span>
+                          {r.context.leaning && r.context.leaning !== "unclear" && (
+                            <span className="text-xs ml-2 px-2 py-0.5 rounded-full"
+                              style={{ background: "rgba(201,150,62,0.13)", color: "var(--gold)" }}>
+                              leans {r.context.leaning}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                                    {/* Full class-probability distribution */}
                   <div className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: "var(--text-mute)" }}>
                     Class probability distribution
                   </div>

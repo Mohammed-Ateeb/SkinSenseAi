@@ -2,6 +2,7 @@
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import PasswordInput from "@/components/PasswordInput";
 
 const RULES = [
   { key: "len", label: "At least 8 characters", test: (p: string) => p.length >= 8 },
@@ -200,8 +201,13 @@ export default function SignupPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium mb-2" style={{ color: "var(--text-dim)" }}>Password</label>
-                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
-                    autoComplete="new-password" placeholder="Create a strong password" className="glass-input w-full px-4 py-3.5 text-sm" />
+                  <PasswordInput
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    autoComplete="new-password"
+                    placeholder="Create a strong password"
+                    className="glass-input w-full px-4 py-3.5 text-sm"
+                  />
 
                   {password.length > 0 && (
                     <div className="mt-3">
@@ -235,8 +241,13 @@ export default function SignupPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium mb-2" style={{ color: "var(--text-dim)" }}>Confirm Password</label>
-                  <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} required
-                    autoComplete="new-password" placeholder="Repeat your password" className="glass-input w-full px-4 py-3.5 text-sm" />
+                  <PasswordInput
+                    value={confirm}
+                    onChange={e => setConfirm(e.target.value)}
+                    autoComplete="new-password"
+                    placeholder="Repeat your password"
+                    className="glass-input w-full px-4 py-3.5 text-sm"
+                  />
                   {confirm.length > 0 && confirm !== password && (
                     <p className="text-xs mt-1.5" style={{ color: "#B85040" }}>Passwords don&apos;t match.</p>
                   )}
