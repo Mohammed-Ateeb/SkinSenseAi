@@ -138,18 +138,20 @@ def main():
             logger.info("  %-22s -> %-28s %5d imgs", old, f"_unused/{split}/{old}", n)
             total_retired += _move_contents(src, dst, args.apply)
 
-        # 3. anything left that is neither known-old nor a new class
+        # 3. Retire ANY remaining folder that is not one of the new classes.
+        #    train.py refuses to run when a train/ folder is outside CLASS_NAMES,
+        #    so leaving strays behind would only fail later and less clearly.
         if sroot.is_dir():
             for d in sorted(p for p in sroot.iterdir() if p.is_dir()):
-                if d.name in NEW_CLASSES or d.name in plan or d.name in RETIRE:
+                if d.name in NEW_CLASSES:
                     continue
-                if d.name in OPTIONAL_FOLD:
-                    logger.info("  %-22s    left as-is (%d imgs) — pass "
-                                "--fold-contact-dermatitis to merge into %s",
-                                d.name, _count(d), OPTIONAL_FOLD[d.name])
-                    continue
-                logger.warning("  %-22s    unrecognised — left untouched (%d imgs)",
-                               d.name, _count(d))
+                n = _count(d)
+                why = ("not folded (pass --fold-contact-dermatitis to keep it)"
+                       if d.name in OPTIONAL_FOLD else "no place in the new taxonomy")
+                logger.info("  %-22s -> %-28s %5d imgs  [%s]",
+                            d.name, f"_unused/{split}/{d.name}", n, why)
+                total_retired += _move_contents(d, root / "_unused" / split / d.name,
+                                                args.apply)
 
     logger.info("---")
     logger.info("moved into new classes : %d", total_moved)
