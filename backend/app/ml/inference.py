@@ -141,7 +141,7 @@ class InferenceEngine:
             confidence_threshold_met=primary.confidence >= _CONFIDENCE_THRESHOLD,
             low_confidence_flag=primary.confidence < _LOW_CONFIDENCE_THRESHOLD,
             context=ctx.as_dict(),
-            context_explanation=explain_context(ctx),
+            context_explanation=explain_context(ctx, primary.condition),
         )
 
     def explain(self, image_bytes: bytes, condition: str) -> str | None:

@@ -58,6 +58,9 @@ export default function AnalyzePage() {
   const [fitzpatrick, setFitzpatrick] = useState<number | null>(null);
   // Axis B - what the user tells us alongside the photo.
   const [answers, setAnswers] = useState<Answers>({});
+  // Bumped on reset to remount IntakeForm — it holds its own answers state, so
+  // clearing ours alone would leave the old description visible and in play.
+  const [formKey, setFormKey] = useState(0);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [globalStep, setGlobalStep] = useState<"idle" | "uploading" | "analyzing" | "results">("idle");
@@ -322,6 +325,9 @@ export default function AnalyzePage() {
     setCaptureTooDark(false);
     setWebcamStatus("loading");
     setCamError("");
+    // A new analysis must not inherit the previous description.
+    setAnswers({});
+    setFormKey(k => k + 1);
   };
 
   // The sidebar's "+ New Analysis" fires this when we are already on /analyze,
@@ -787,7 +793,7 @@ export default function AnalyzePage() {
                   A photo cannot show whether a flare is hormonal or seasonal;
                   these answers reweight the model toward the right group. */}
               <div className="mt-6">
-                <IntakeForm onChange={setAnswers} />
+                <IntakeForm key={formKey} onChange={setAnswers} />
               </div>
 
               {/* Fitzpatrick — shared by both modes */}

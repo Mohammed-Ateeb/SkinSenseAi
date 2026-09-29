@@ -342,13 +342,28 @@ def _pretty(c: str) -> str:
     return c.replace("_", " ")
 
 
-def explain(ctx: ContextResult) -> str:
-    """One-line, human-readable summary for the UI."""
+def explain(ctx: ContextResult, primary: str | None = None) -> str:
+    """One-line, human-readable summary for the UI.
+
+    `primary` is the FINAL predicted condition. Without it this used to name
+    whichever class the text most supported, which could contradict the result
+    actually on screen — the card claimed "points toward eczema flare" while the
+    photo had concluded something else. When they disagree, say so.
+    """
     if not ctx.matched:
         return "No description given — this result is based on the photo alone."
     cues = ", ".join(ctx.matched[:4])
-    if ctx.supported:
-        return f"You described {cues} — that points toward {_pretty(ctx.supported[0])}."
+    top = ctx.supported[0] if ctx.supported else None
+
+    if primary and top:
+        if top == primary:
+            return f"You described {cues} — that supports {_pretty(primary)}."
+        return (
+            f"You described {cues}, which leans toward {_pretty(top)}. "
+            f"The photo pointed to {_pretty(primary)} more strongly."
+        )
+    if top:
+        return f"You described {cues} — that points toward {_pretty(top)}."
     return f"You described {cues}."
 
 
