@@ -33,6 +33,43 @@ MODEL_VERSION = os.getenv("MODEL_VERSION", "efficientnet-b0-12cls-v1")
 # number including the wrong ones. Costs one forward pass per view.
 _USE_TTA = os.getenv("TTA", "true").lower() == "true"
 
+# How much confidence a class must reach before we present it as an answer.
+#
+# A single global threshold is wrong here, because the classes are not equally
+# well supported. eczema_flare has ~3,400 training images and fungal_infection
+# ~3,300, so 60% from those is real. hirsutism has TWO, so 60% from it is the
+# model pattern-matching on noise. The bar therefore scales with how much data
+# backs the class: the thinner the evidence it learned from, the more confidence
+# we demand before we stop saying "not sure".
+#
+# Update these alongside the dataset — they are a statement about the training
+# data, not about the conditions themselves.
+_MIN_CONFIDENCE: dict[str, float] = {
+    # well supported (>2,000 images)
+    "eczema_flare": 0.35,
+    "fungal_infection": 0.35,
+    "hormonal_acne": 0.35,
+    # moderate (~500)
+    "hormonal_hyperpigmentation": 0.45,
+    # thin (100-200)
+    "sunburn": 0.50,
+    "seborrhea": 0.50,
+    # weak (<100)
+    "acanthosis_nigricans": 0.60,
+    "xerosis": 0.60,
+    # very weak (<50) — these need strong evidence before we assert them
+    "melasma": 0.65,
+    "miliaria": 0.65,
+    "chapped_lips": 0.65,
+    # effectively untrained (2 images) — defer to the description instead
+    "hirsutism": 0.80,
+}
+
+
+def _min_confidence(condition: str) -> float:
+    """Confidence floor for a class; falls back to the global threshold."""
+    return _MIN_CONFIDENCE.get(condition, _LOW_CONFIDENCE_THRESHOLD)
+
 
 @dataclass
 class ConditionScore:
@@ -139,7 +176,7 @@ class InferenceEngine:
             predictions=scores,
             differential_diagnoses=differentials,
             confidence_threshold_met=primary.confidence >= _CONFIDENCE_THRESHOLD,
-            low_confidence_flag=primary.confidence < _LOW_CONFIDENCE_THRESHOLD,
+            low_confidence_flag=primary.confidence < _min_confidence(primary.condition),
             context=ctx.as_dict(),
             context_explanation=explain_context(ctx, primary.condition),
         )
