@@ -183,7 +183,7 @@ async def analyze(body: AnalyzeRequest, user: CurrentUser = Depends(get_current_
     ar_result = supabase.table("analysis_results").insert({
         "image_id": body.image_id,
         "user_id": user.id,
-        "model_version": "efficientnet-b0-v1",
+        "model_version": engine.model_version,
         "predictions": predictions_jsonb,
         "primary_condition": predict_result.primary_condition,
         "confidence_score": predict_result.confidence_score,

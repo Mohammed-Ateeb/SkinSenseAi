@@ -53,6 +53,17 @@ class InferenceEngine:
         self._model = model
         self._device = device
         self._class_names = get_class_names()
+        # Architecture actually loaded (from the self-describing checkpoint),
+        # not a hardcoded string — so stored records name the real model.
+        self.arch = getattr(model, "arch", "unknown")
+
+    @property
+    def model_version(self) -> str:
+        """e.g. "convnext_tiny-12cls". MODEL_VERSION env overrides if set."""
+        override = os.getenv("MODEL_VERSION")
+        if override:
+            return override
+        return f"{self.arch}-{len(self._class_names)}cls"
 
     @classmethod
     def from_env(cls, weights_path: str | None = None) -> "InferenceEngine":

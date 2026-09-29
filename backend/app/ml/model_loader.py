@@ -166,7 +166,19 @@ def load_model(
                     raise ValueError(msg)
                 logger.warning("ALLOW_CLASS_MISMATCH set — %s", msg)
         else:
-            state = obj  # bare state_dict — its own temperature param is authoritative
+            # Bare state_dict (legacy): no arch, no class_names, so a checkpoint
+            # trained on a DIFFERENT 12-class taxonomy loads silently and
+            # mislabels everything. We cannot detect that — the file carries no
+            # provenance — so say so loudly instead of failing closed on what may
+            # be a perfectly good checkpoint.
+            state = obj  # its own temperature param is authoritative
+            logger.warning(
+                "Loading a checkpoint with NO embedded class_names (%s). Cannot "
+                "verify it was trained on the current taxonomy: %s. If it was "
+                "not, every prediction will carry the wrong label. Retrain with "
+                "train.py to get a self-describing checkpoint.",
+                resolved_path, CLASS_NAMES[:3] + ["..."],
+            )
 
     backbone = build_backbone(resolved_arch, num_classes=len(CLASS_NAMES))
     model = TemperatureScaler(
@@ -193,6 +205,9 @@ def load_model(
             resolved_path,
         )
 
+    # Record the arch that was actually built so callers can report the true
+    # model version instead of a hardcoded guess.
+    model.arch = resolved_arch
     model.to(device)
     model.eval()
     return model
