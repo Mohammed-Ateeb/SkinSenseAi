@@ -66,3 +66,6 @@ dev-server.log
 /fitzpatrick17k.csv
 dataset_raw/
 # Note: backend/app/ml/training/dataset_manifest.csv IS tracked (it's a tiny label index).
+
+# TypeScript incremental build cache — regenerated on every build
+*.tsbuildinfo
