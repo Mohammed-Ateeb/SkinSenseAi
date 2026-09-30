@@ -35,6 +35,37 @@ def _jet(cam: np.ndarray) -> np.ndarray:
     return np.stack([r, g, b], axis=-1) * 255.0
 
 
+
+def _pick_target_layer(base: torch.nn.Module, device: torch.device) -> torch.nn.Module:
+    """Deepest feature stage that is still at least 14x14.
+
+    Hooking the very last stage gives a 7x7 map, and upsampling that to 224
+    means every cell covers a 32x32 block — the heatmap can only ever be a
+    coarse blob, which reads as "focusing on the wrong area" even when the
+    model is looking in roughly the right place. One stage earlier is 14x14:
+    four times the spatial detail, and still deep enough to be semantic rather
+    than edge-detection.
+
+    Chosen by measuring, not hardcoded, so this holds for EfficientNet-B0/B3
+    and ConvNeXt alike. Falls back to the whole feature extractor if the layout
+    is not what we expect.
+    """
+    features = getattr(base, "features", None)
+    if features is None or not hasattr(features, "__getitem__"):
+        return base.features if hasattr(base, "features") else base
+
+    try:
+        with torch.no_grad():
+            h = torch.zeros(1, 3, 224, 224, device=device)
+            best = None
+            for stage in features:
+                h = stage(h)
+                if h.dim() == 4 and h.shape[-1] >= 14:
+                    best = stage          # keep the deepest one at >=14x14
+            return best if best is not None else features
+    except Exception:                      # noqa: BLE001 — never break analysis
+        return features
+
 def generate_gradcam(
     model: torch.nn.Module,
     device: torch.device,
@@ -44,12 +75,12 @@ def generate_gradcam(
 ) -> str | None:
     """Return a base64 PNG data URI of the Grad-CAM overlay, or None on failure.
 
-    `model` is the TemperatureScaler wrapper; we hook the inner EfficientNet's
-    final conv feature map (``base_model.features``).
+    `model` is the TemperatureScaler wrapper; we hook the deepest feature map
+    that still has usable spatial resolution (see _pick_target_layer).
     """
     try:
         base = getattr(model, "base_model", model)
-        target_layer = base.features  # final conv feature map (1280ch, 7x7)
+        target_layer = _pick_target_layer(base, device)
 
         tensor = preprocess_bytes(image_bytes).to(device)
 

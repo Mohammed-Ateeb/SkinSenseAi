@@ -46,6 +46,8 @@ export default function IntakeForm({
   const [fields, setFields] = useState<FieldSpec[]>([]);
   const [answers, setAnswers] = useState<Answers>({});
   const [open, setOpen] = useState(defaultOpen);
+  // Choice fields showing a free-text box because "Other" was picked.
+  const [customOpen, setCustomOpen] = useState<Record<string, boolean>>({});
   const [failed, setFailed] = useState(false);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -168,14 +170,53 @@ export default function IntakeForm({
                     )}
 
                     {f.type === "choice" && (
-                      <div id={`q-${f.key}`} className="flex flex-wrap gap-2">
-                        {f.options.map(o => (
-                          <button key={o} type="button"
-                            onClick={() => set(f.key, answers[f.key] === o ? null : o)}
-                            style={chip(answers[f.key] === o)}>
-                            {pretty(o)}
-                          </button>
-                        ))}
+                      <div id={`q-${f.key}`} className="flex flex-col gap-2">
+                        <div className="flex flex-wrap gap-2">
+                          {f.options.map(o => {
+                            // "Other" is a mode, not a value — picking it opens a
+                            // box and whatever is typed becomes the answer.
+                            const isOther = o === "other";
+                            const active = isOther
+                              ? !!customOpen[f.key]
+                              : answers[f.key] === o;
+                            return (
+                              <button key={o} type="button"
+                                onClick={() => {
+                                  if (isOther) {
+                                    const now = !customOpen[f.key];
+                                    setCustomOpen(c => ({ ...c, [f.key]: now }));
+                                    if (!now) set(f.key, null);
+                                    else if (f.options.includes(String(answers[f.key]))) set(f.key, null);
+                                  } else {
+                                    setCustomOpen(c => ({ ...c, [f.key]: false }));
+                                    set(f.key, answers[f.key] === o ? null : o);
+                                  }
+                                }}
+                                style={chip(active)}>
+                                {isOther ? "Other…" : pretty(o)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {customOpen[f.key] && (
+                          <input
+                            type="text"
+                            autoFocus
+                            placeholder="e.g. about 3 years, on and off"
+                            value={
+                              f.options.includes(String(answers[f.key]))
+                                ? ""
+                                : (answers[f.key] as string | undefined) ?? ""
+                            }
+                            onChange={e => set(f.key, e.target.value)}
+                            className="text-sm px-3 py-2 rounded-xl w-full"
+                            style={{
+                              border: "1px solid rgba(42,31,20,0.14)",
+                              background: "rgba(255,255,255,0.55)",
+                              color: "var(--text)",
+                            }}
+                          />
+                        )}
                       </div>
                     )}
 

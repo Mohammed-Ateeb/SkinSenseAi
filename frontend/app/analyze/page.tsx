@@ -8,6 +8,7 @@ import { useGSAP } from "@gsap/react";
 import AppShell from "@/components/AppShell";
 import Markdown from "@/components/Markdown";
 import IntakeForm, { type Answers } from "@/components/IntakeForm";
+import ZoomableImage from "@/components/ZoomableImage";
 
 // Guided reveal stages after analysis completes
 type ResultStage = "diagnosis" | "products" | "chat";
@@ -416,12 +417,12 @@ export default function AnalyzePage() {
                       Warmer = more influence on the result
                     </div>
                   </div>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <ZoomableImage
                     src={result.gradcam}
                     alt={`Heatmap showing the areas that most influenced the ${result.primary_condition} prediction`}
                     className="w-full rounded-2xl"
                     style={{ maxHeight: "340px", objectFit: "contain", background: "rgba(42,31,20,0.04)" }}
+                    hint="Click to inspect"
                   />
                   <p className="text-xs mt-3 leading-relaxed" style={{ color: "var(--text-mute)" }}>
                     Where the model looked when deciding. Most accurate on a tight close-up
@@ -758,7 +759,7 @@ export default function AnalyzePage() {
                     <input id="file-input" type="file" accept="image/*" className="sr-only"
                       onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
                     {preview ? (
-                      <img src={preview} alt="Selected" className="max-h-48 rounded-xl object-contain" />
+                      <ZoomableImage src={preview} alt="Selected photo" className="max-h-48 rounded-xl object-contain" />
                     ) : (
                       <>
                         <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
