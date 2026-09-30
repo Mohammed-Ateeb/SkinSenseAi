@@ -84,6 +84,10 @@ export default function AnalyzePage() {
   const [webcamStatus, setWebcamStatus] = useState<"loading" | "ready" | "captured" | "error">("loading");
   const [camError, setCamError] = useState<string>("");
   const [capturedThumb, setCapturedThumb] = useState<string | null>(null);
+  // Digital zoom for the live camera. The model wants a tight close-up and a
+  // webcam often cannot physically get near enough, so let the user crop in
+  // BEFORE capture — and crop the saved frame to match what they framed.
+  const [camZoom, setCamZoom] = useState(1);
   const [tooDark, setTooDark] = useState(false);          // live preview is dim
   const [captureTooDark, setCaptureTooDark] = useState(false);  // the taken shot is dim
 
@@ -189,10 +193,17 @@ export default function AnalyzePage() {
     const video = videoRef.current;
     const canvas = captureRef.current;
     if (!video || !canvas || !video.videoWidth) return;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    // Crop the same centre region the preview is showing. Without this the
+    // user frames a close-up and we quietly save the full wide shot.
+    const sw = video.videoWidth / camZoom;
+    const sh = video.videoHeight / camZoom;
+    const sx = (video.videoWidth - sw) / 2;
+    const sy = (video.videoHeight - sh) / 2;
+    canvas.width = Math.round(sw);
+    canvas.height = Math.round(sh);
     const cctx = canvas.getContext("2d")!;
-    cctx.drawImage(video, 0, 0);
+    // Source-cropped at native pixels — no upscaling, so detail is preserved.
+    cctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
     // Measure brightness of the actual captured frame — gate analysis if too dark.
     const w = 32, h = 24, t = document.createElement("canvas");
     t.width = w; t.height = h;
@@ -213,6 +224,7 @@ export default function AnalyzePage() {
     setCapturedThumb(null);
     setCaptureTooDark(false);
     setError(null);
+    setCamZoom(1);
     setWebcamStatus("loading");
     setMode("upload");
     setTimeout(() => setMode("webcam"), 50);
@@ -663,16 +675,48 @@ export default function AnalyzePage() {
                         style={{ background: "#111", boxShadow: "0 8px 40px rgba(42,31,20,0.25)", border: "1px solid rgba(255,255,255,0.15)" }}>
                         <video ref={videoRef} playsInline muted autoPlay
                           className="w-full block"
-                          style={{ transform: "scaleX(-1)", aspectRatio: "4/3", objectFit: "cover" }} />
+                          style={{
+                            transform: `scaleX(-1) scale(${camZoom})`,
+                            transformOrigin: "center",
+                            aspectRatio: "4/3",
+                            objectFit: "cover",
+                          }} />
                         {/* Hint pill */}
                         <div className="absolute top-3 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5"
                           style={{ background: "rgba(20,16,12,0.6)", backdropFilter: "blur(8px)", color: "rgba(255,255,255,0.75)", border: "1px solid rgba(255,255,255,0.12)" }}>
                           <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: tooDark ? "#E8927C" : "#7FD8BE" }} />
                           Get close — fill the frame with the affected area
                         </div>
+                        {/* Digital zoom — framing tightly is the single biggest
+                            thing a user can do to improve the result. */}
+                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-[86%] flex items-center gap-3 px-3 py-2 rounded-xl"
+                          style={{ background: "rgba(20,16,12,0.6)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                          <button type="button" aria-label="Zoom out"
+                            onClick={() => setCamZoom(z => Math.max(1, +(z - 0.25).toFixed(2)))}
+                            style={{ color: "rgba(255,255,255,0.8)", cursor: "pointer", lineHeight: 0 }}>
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
+                          </button>
+                          <input
+                            type="range" min={1} max={4} step={0.05}
+                            value={camZoom}
+                            onChange={e => setCamZoom(Number(e.target.value))}
+                            aria-label="Camera zoom"
+                            className="flex-1"
+                            style={{ accentColor: "#C9963E", cursor: "pointer" }}
+                          />
+                          <button type="button" aria-label="Zoom in"
+                            onClick={() => setCamZoom(z => Math.min(4, +(z + 0.25).toFixed(2)))}
+                            style={{ color: "rgba(255,255,255,0.8)", cursor: "pointer", lineHeight: 0 }}>
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 3v8M3 7h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
+                          </button>
+                          <span className="text-xs tabular-nums" style={{ color: "rgba(255,255,255,0.75)", minWidth: "2.6rem", textAlign: "right" }}>
+                            {camZoom.toFixed(1)}×
+                          </span>
+                        </div>
+
                         {/* Low-light prompt */}
                         {tooDark && (
-                          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-[92%] px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-2 justify-center text-center animate-fade-up"
+                          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 w-[92%] px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-2 justify-center text-center animate-fade-up"
                             style={{ background: "rgba(184,80,64,0.9)", backdropFilter: "blur(8px)", color: "#fff", border: "1px solid rgba(255,255,255,0.15)" }}>
                             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
                               <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M13 3l-1.5 1.5M4.5 11.5L3 13" stroke="#fff" strokeWidth="1.3" strokeLinecap="round"/>
@@ -698,7 +742,7 @@ export default function AnalyzePage() {
                       <div className="relative rounded-2xl overflow-hidden mb-4"
                         style={{ background: "#111", border: "1px solid rgba(255,255,255,0.15)" }}>
                         {capturedThumb && (
-                          <img src={capturedThumb} alt="Captured photo"
+                          <ZoomableImage src={capturedThumb} alt="Captured photo"
                             className="w-full block"
                             style={{ transform: "scaleX(-1)", aspectRatio: "4/3", objectFit: "cover" }} />
                         )}
