@@ -104,7 +104,15 @@ class RagRetriever:
         supabase: Any,
         product_threshold: float = 0.3,
         product_count: int = 5,
-        knowledge_threshold: float = 0.3,
+        # Raised from 0.3. The seeded knowledge (migration 005) covers six of
+        # the OLD conditions, and only acne/eczema/tinea map cleanly onto the
+        # current taxonomy. All dermatology prose is broadly similar, so at 0.3
+        # a melasma or miliaria query still clears the bar on psoriasis text and
+        # the LLM grounds its advice in the wrong condition. Retrieving nothing
+        # is strictly better than retrieving the wrong thing — an empty context
+        # just falls back to the model's general knowledge, which is today's
+        # behaviour anyway. Lower it again once the knowledge base covers all 12.
+        knowledge_threshold: float = 0.45,
         knowledge_count: int = 4,
     ) -> None:
         self._supabase = supabase
