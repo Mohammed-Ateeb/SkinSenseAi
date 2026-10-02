@@ -28,6 +28,40 @@ from .embeddings import embed_query
 logger = logging.getLogger(__name__)
 
 
+# Which seeded knowledge topics are actually valid for each current class.
+#
+# The knowledge base (migration 005) was written for the OLD six conditions.
+# Cosine similarity cannot tell dermatology prose apart -- it all scores alike
+# -- so querying "melasma" happily returned rosacea text, and "seborrhea"
+# returned seborrheic KERATOSES, a benign tumour. Eight of twelve classes
+# retrieved the wrong condition, and the LLM would then ground its advice in
+# it. A similarity threshold did not help: the wrong chunks scored as high as
+# the right ones.
+#
+# So the condition column gates the result instead of the distance score.
+# Classes with no matching topic get 'general' only (barrier science,
+# Fitzpatrick phototypes), which holds for any skin condition. Retrieving
+# nothing specific is the correct outcome there -- the LLM then falls back on
+# its own knowledge, which is what it did before RAG existed.
+#
+# Remove an entry from this map once real knowledge for that class is seeded.
+_ALLOWED_TOPICS: dict[str, set[str]] = {
+    "hormonal_acne":              {"acne", "general"},
+    "eczema_flare":               {"eczema", "general"},
+    "xerosis":                    {"eczema", "general"},   # barrier/TEWL applies
+    "fungal_infection":           {"tinea", "general"},
+    # Nothing seeded maps to these. 'general' only, deliberately.
+    "melasma":                    {"general"},
+    "seborrhea":                  {"general"},             # NOT seborrheic_keratoses
+    "hirsutism":                  {"general"},
+    "acanthosis_nigricans":       {"general"},
+    "hormonal_hyperpigmentation": {"general"},
+    "sunburn":                    {"general"},
+    "miliaria":                   {"general"},
+    "chapped_lips":               {"general"},
+}
+
+
 @dataclass(frozen=True)
 class ProductContext:
     """A single approved product returned by match_products()."""
@@ -104,15 +138,13 @@ class RagRetriever:
         supabase: Any,
         product_threshold: float = 0.3,
         product_count: int = 5,
-        # Raised from 0.3. The seeded knowledge (migration 005) covers six of
-        # the OLD conditions, and only acne/eczema/tinea map cleanly onto the
-        # current taxonomy. All dermatology prose is broadly similar, so at 0.3
-        # a melasma or miliaria query still clears the bar on psoriasis text and
-        # the LLM grounds its advice in the wrong condition. Retrieving nothing
-        # is strictly better than retrieving the wrong thing — an empty context
-        # just falls back to the model's general knowledge, which is today's
-        # behaviour anyway. Lower it again once the knowledge base covers all 12.
-        knowledge_threshold: float = 0.45,
+        # Back down to 0.3 now that _ALLOWED_TOPICS gates on the condition
+        # column. The threshold was never the right tool: all dermatology prose
+        # scores alike, so a melasma query cleared 0.45 on psoriasis text just
+        # as easily as the right chunk would. Raising it only starved the
+        # classes that DO have matching knowledge. The gate decides relevance;
+        # the threshold is back to just dropping genuine noise.
+        knowledge_threshold: float = 0.30,
         knowledge_count: int = 4,
     ) -> None:
         self._supabase = supabase
@@ -148,7 +180,24 @@ class RagRetriever:
             return RetrievedContext(query=query, products=[], knowledge=[])
 
         products = self._match_products(embedding)
-        knowledge = self._match_knowledge(embedding) if with_knowledge else []
+
+        knowledge: List[KnowledgeContext] = []
+        if with_knowledge:
+            # Over-fetch, then gate on the condition column, then trim. The gate
+            # is what decides relevance here -- similarity cannot, because all
+            # dermatology prose scores alike. Fetching only knowledge_count
+            # first would mean the nearest chunks are usually off-topic ones
+            # that the gate then drops, leaving nothing even though valid
+            # general chunks were sitting just below the cut.
+            allowed = _ALLOWED_TOPICS.get(condition.strip().lower())
+            fetched = self._match_knowledge(
+                embedding,
+                # An unknown class is not gated, so it needs no headroom.
+                self._knowledge_count * 4 if allowed else self._knowledge_count,
+            )
+            if allowed:
+                fetched = [k for k in fetched if (k.condition or "general") in allowed]
+            knowledge = fetched[: self._knowledge_count]
 
         return RetrievedContext(query=query, products=products, knowledge=knowledge)
 
@@ -169,14 +218,16 @@ class RagRetriever:
             return []
         return [ProductContext.from_row(r) for r in (resp.data or [])]
 
-    def _match_knowledge(self, embedding: List[float]) -> List[KnowledgeContext]:
+    def _match_knowledge(
+        self, embedding: List[float], count: Optional[int] = None
+    ) -> List[KnowledgeContext]:
         try:
             resp = self._supabase.rpc(
                 "match_knowledge",
                 {
                     "query_embedding": embedding,
                     "match_threshold": self._knowledge_threshold,
-                    "match_count": self._knowledge_count,
+                    "match_count": count or self._knowledge_count,
                 },
             ).execute()
         except Exception as e:  # noqa: BLE001 — RPC/vector store may be absent
