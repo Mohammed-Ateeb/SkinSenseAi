@@ -235,8 +235,12 @@ async def analyze(body: AnalyzeRequest, user: CurrentUser = Depends(get_current_
         # Convert nested TwinDeltas dataclass to dict for JSON serialisation
         if "deltas" in twin_state_dict and hasattr(twin_state_dict["deltas"], "__dict__"):
             twin_state_dict["deltas"] = twin_state_dict["deltas"].__dict__
-    except Exception as e:
-        logger.warning(f"Twin update failed (non-fatal): {e}")
+    except Exception:
+        # Non-fatal by design -- a failed twin update must not cost the user
+        # their analysis. But log the traceback, not just the message: this
+        # block silently absorbed a crash on every single scan for 34 analyses,
+        # and a one-line warning was not enough for anyone to notice.
+        logger.exception("Twin update failed (non-fatal); analysis still returned")
 
     # 9. Ephemeral image deletion (non-fatal)
     # EphemeralImageLifecycle takes URL and service key strings, not a supabase client

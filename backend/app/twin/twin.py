@@ -221,7 +221,13 @@ def _load_twin(db: Client, user_id: str) -> dict | None:
         .maybe_single()
         .execute()
     )
-    return resp.data
+    # maybe_single() returns None -- not an empty response -- when no row
+    # matches, so resp.data raises AttributeError. That mattered: a user with
+    # no twin yet crashed here, update_twin()'s caller swallowed it as
+    # "non-fatal", and so the twin was never created. No twin meant a crash,
+    # and a crash meant no twin, so the feature could never start. It produced
+    # 0 rows across 34 analyses while appearing to work.
+    return resp.data if resp else None
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -343,7 +349,29 @@ def update_twin(
     new_face_geometry   = predict_result.face_geometry   or (existing.get("face_geometry")   if existing else None)
     new_zone_conditions = predict_result.zone_conditions or (existing.get("zone_conditions") if existing else None)
 
-    # ── 4. Insert snapshot ───────────────────────────────────────────────────
+    # ── 4. Upsert skin_twins BEFORE the snapshot ───────────────────────
+    #
+    # Order matters: skin_twin_snapshots.twin_id is a foreign key onto
+    # skin_twins.id, so inserting the snapshot first fails with 23503 whenever
+    # the parent twin row does not exist yet -- that is, on every user's first
+    # scan, which is the only time it matters.
+    db.table("skin_twins").upsert({
+        "id":                    twin_id,
+        "user_id":               user_id,
+        "fitzpatrick_skin_tone": new_fitz,
+        "hydration_index":       new_hydration,
+        "barrier_integrity":     new_barrier,
+        "active_flare_ups":      new_flares,
+        "dominant_condition":    dominant,
+        "scan_count":            new_scan_count,
+        "last_scan_at":          now,
+        "last_updated_at":       now,
+        "created_at":            twin_created_at,
+        "face_geometry":         new_face_geometry,
+        "zone_conditions":       new_zone_conditions,
+    }, on_conflict="user_id").execute()
+
+    # ── 5. Insert the snapshot, now that the parent twin row exists ──────
     snapshot_id = str(uuid.uuid4())
     db.table("skin_twin_snapshots").insert({
         "id":                    snapshot_id,
@@ -366,23 +394,6 @@ def update_twin(
         "zone_conditions":       new_zone_conditions,
         "created_at":            now,
     }).execute()
-
-    # ── 5. Upsert skin_twins (on_conflict=user_id) ───────────────────────────
-    db.table("skin_twins").upsert({
-        "id":                    twin_id,
-        "user_id":               user_id,
-        "fitzpatrick_skin_tone": new_fitz,
-        "hydration_index":       new_hydration,
-        "barrier_integrity":     new_barrier,
-        "active_flare_ups":      new_flares,
-        "dominant_condition":    dominant,
-        "scan_count":            new_scan_count,
-        "last_scan_at":          now,
-        "last_updated_at":       now,
-        "created_at":            twin_created_at,
-        "face_geometry":         new_face_geometry,
-        "zone_conditions":       new_zone_conditions,
-    }, on_conflict="user_id").execute()
 
     return TwinState(
         twin_id               = twin_id,
