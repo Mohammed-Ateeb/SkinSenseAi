@@ -20,8 +20,24 @@ from .embeddings import embed_documents
 
 
 def _client():
-    url = os.environ["SUPABASE_URL"]
-    key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+    # Load backend/.env the same way the app does. Without this the script
+    # KeyErrors on a machine where the vars are only in the .env file, which is
+    # every machine this project actually runs on.
+    try:
+        from dotenv import load_dotenv  # noqa: PLC0415
+        here = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        load_dotenv(dotenv_path=os.path.join(here, ".env"))
+    except Exception:  # noqa: BLE001 — env may already be set another way
+        pass
+
+    try:
+        url = os.environ["SUPABASE_URL"]
+        key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+    except KeyError as e:
+        raise SystemExit(
+            f"Missing {e.args[0]}. Run this from the backend/ directory so "
+            "backend/.env is found, or export the variable yourself."
+        ) from e
     return create_client(url, key)
 
 
